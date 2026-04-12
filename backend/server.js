@@ -70,26 +70,53 @@ app.get("/", (req, res) => {
 app.post("/admin-login", (req, res) => {
   const { username, password } = req.body;
 
-  db.query("SELECT * FROM admins WHERE username=?", [username], async (err, results) => {
-    if (err) return res.status(500).json({ message: "Server error" });
+  if (!username || !password) {
+    return res.status(400).json({ message: "Username and password required" });
+  }
 
-    if (results.length === 0)
-      return res.status(404).json({ message: "Admin not found" });
+  db.query(
+    "SELECT * FROM admins WHERE username = ? LIMIT 1",
+    [username],
+    async (err, results) => {
+      if (err) {
+        console.error("Admin login DB error:", err);
+        return res.status(500).json({ message: "Server error" });
+      }
 
-    const admin = results[0];
-    const match = await bcrypt.compare(password, admin.password);
+      if (results.length === 0) {
+        return res.status(404).json({ message: "Admin not found" });
+      }
 
-    if (!match)
-      return res.status(401).json({ message: "Wrong password" });
+      const admin = results[0];
 
-    const token = jwt.sign(
-      { id: admin.id, username: admin.username },
-      JWT_SECRET,
-      { expiresIn: "1d" }
-    );
+      try {
+        const isMatch = await bcrypt.compare(password, admin.password);
 
-    res.json({ message: "Login success", token });
-  });
+        if (!isMatch) {
+          return res.status(401).json({ message: "Wrong password" });
+        }
+
+        const token = jwt.sign(
+          {
+            id: admin.id,
+            username: admin.username,
+            role: "admin"
+          },
+          JWT_SECRET,
+          { expiresIn: "1d" }
+        );
+
+        return res.json({
+          message: "Login success",
+          token,
+          username: admin.username
+        });
+      } catch (compareErr) {
+        console.error("Password compare error:", compareErr);
+        return res.status(500).json({ message: "Server error" });
+      }
+    }
+  );
 });
 
 /* ---------------- NOTICES ---------------- */

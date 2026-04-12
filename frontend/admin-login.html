@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Login - Civil Crete Club</title>
+  <title>Admin Login - Civil Create Club</title>
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Cinzel:wght@500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -15,7 +15,7 @@
       <span class="admin-login-badge">Secure Access</span>
       <h1>Admin Control Login</h1>
       <p>
-        Access the official Civil Crete Club dashboard to manage notices,
+        Access the official Civil Create Club dashboard to manage notices,
         achievements, gallery highlights, and club content.
       </p>
     </div>
@@ -37,7 +37,7 @@
   </section>
 
   <script>
-    // const API_BASE = "http://localhost:3000"; -->
+    // const API_BASE = "http://localhost:3000";
     const API_BASE = "https://civil-create-club.onrender.com";
 
     async function adminLogin() {
@@ -58,25 +58,18 @@
           body: JSON.stringify({ username, password })
         });
 
-        const text = await res.text();
-        let data;
-
-        try {
-          data = JSON.parse(text);
-        } catch {
-          alert("Server error");
-          return;
-        }
+        const data = await res.json();
+        console.log("LOGIN RESPONSE:", data);
 
         alert(data.message || "Something went wrong");
 
-        if (data.token) {
+        if (res.ok && data.token) {
           localStorage.setItem("adminToken", data.token);
           localStorage.setItem("adminUsername", data.username || username);
           window.location.href = "admin.html";
         }
       } catch (error) {
-        console.error(error);
+        console.error("LOGIN ERROR:", error);
         alert("Server error");
       }
     }
