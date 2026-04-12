@@ -1,0 +1,33 @@
+async function loadActivityLogs() {
+      const box = document.getElementById("activityLogsBox");
+
+      if (adminRole !== "head") return;
+
+      try {
+        const res = await fetch(`${API_BASE}/activity-logs`, {
+          headers: {
+            authorization: "Bearer " + token
+          }
+        });
+
+        const data = await res.json();
+
+        if (!Array.isArray(data) || data.length === 0) {
+          box.innerHTML = `<div class="empty-request-box">No activity logs found.</div>`;
+          return;
+        }
+
+        box.innerHTML = data.map(log => `
+          <div class="request-card premium-request-card">
+            <div class="request-meta">
+              <h4>${log.admin_username} <span class="role-badge role-${log.admin_role}">${log.admin_role}</span></h4>
+              <p><strong>Action:</strong> ${log.action_type}</p>
+              <p>${log.action_details || ""}</p>
+              <p><strong>Time:</strong> ${new Date(log.created_at).toLocaleString()}</p>
+            </div>
+          </div>
+        `).join("");
+      } catch (error) {
+        box.innerHTML = `<div class="empty-request-box">Failed to load activity logs.</div>`;
+      }
+    }

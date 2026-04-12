@@ -403,7 +403,110 @@
         box.innerHTML = `<div class="empty-request-box">Failed to load gallery.</div>`;
       }
     }
+  async function addMember() {
+  const name = document.getElementById("memberName").value.trim();
+  const role = document.getElementById("memberRole").value.trim();
+  const category = document.getElementById("memberCategory").value;
+  const description = document.getElementById("memberDescription").value.trim();
+  const image = document.getElementById("memberImage").files[0];
 
+  if (!name || !role || !category) {
+    alert("Please fill name, role and category");
+    return;
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append("name", name);
+    formData.append("role", role);
+    formData.append("category", category);
+    formData.append("description", description);
+    if (image) {
+      formData.append("image", image);
+    }
+
+    const res = await fetch(`${API_BASE}/add-member`, {
+      method: "POST",
+      headers: {
+        authorization: "Bearer " + token
+      },
+      body: formData
+    });
+
+    const data = await res.json();
+    alert(data.message || "Member added");
+
+    if (res.ok) {
+      document.getElementById("memberName").value = "";
+      document.getElementById("memberRole").value = "";
+      document.getElementById("memberCategory").value = "faculty";
+      document.getElementById("memberDescription").value = "";
+      document.getElementById("memberImage").value = "";
+      loadTeamMembersAdmin();
+    }
+  } catch (error) {
+    console.error("Add member error:", error);
+    alert("Server error");
+  }
+}
+
+async function loadTeamMembersAdmin() {
+  const box = document.getElementById("teamMemberListBox");
+
+  try {
+    const res = await fetch(`${API_BASE}/team`);
+    const data = await res.json();
+
+    if (!Array.isArray(data) || data.length === 0) {
+      box.innerHTML = `<div class="empty-request-box">No team members found.</div>`;
+      return;
+    }
+
+    box.innerHTML = data.map(member => `
+      <div class="request-card premium-request-card">
+        <div class="request-meta">
+          <h4>${member.name || "Unnamed"}</h4>
+          <p><strong>Role:</strong> ${member.role || ""}</p>
+          <p><strong>Category:</strong> ${member.category || ""}</p>
+          <p>${member.description || ""}</p>
+          ${member.image ? `<p><strong>Image:</strong> ${member.image}</p>` : ""}
+        </div>
+        <div class="request-actions">
+          ${adminRole === "head"
+            ? `<button class="reject-btn" onclick="deleteMember(${member.id})">Delete</button>`
+            : `<span class="limited-badge">View Only</span>`
+          }
+        </div>
+      </div>
+    `).join("");
+  } catch (error) {
+    console.error("Load team members error:", error);
+    box.innerHTML = `<div class="empty-request-box">Failed to load team members.</div>`;
+  }
+}
+
+async function deleteMember(id) {
+  if (!confirm("Delete this team member?")) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/delete-member/${id}`, {
+      method: "DELETE",
+      headers: {
+        authorization: "Bearer " + token
+      }
+    });
+
+    const data = await res.json();
+    alert(data.message || "Deleted");
+
+    if (res.ok) {
+      loadTeamMembersAdmin();
+    }
+  } catch (error) {
+    console.error("Delete member error:", error);
+    alert("Server error");
+  }
+}
     async function loadNotes() {
       const box = document.getElementById("notesListBox");
 
@@ -683,40 +786,6 @@
       }
     }
 
-    async function loadActivityLogs() {
-      const box = document.getElementById("activityLogsBox");
-
-      if (adminRole !== "head") return;
-
-      try {
-        const res = await fetch(`${API_BASE}/activity-logs`, {
-          headers: {
-            authorization: "Bearer " + token
-          }
-        });
-
-        const data = await res.json();
-
-        if (!Array.isArray(data) || data.length === 0) {
-          box.innerHTML = `<div class="empty-request-box">No activity logs found.</div>`;
-          return;
-        }
-
-        box.innerHTML = data.map(log => `
-          <div class="request-card premium-request-card">
-            <div class="request-meta">
-              <h4>${log.admin_username} <span class="role-badge role-${log.admin_role}">${log.admin_role}</span></h4>
-              <p><strong>Action:</strong> ${log.action_type}</p>
-              <p>${log.action_details || ""}</p>
-              <p><strong>Time:</strong> ${new Date(log.created_at).toLocaleString()}</p>
-            </div>
-          </div>
-        `).join("");
-      } catch (error) {
-        box.innerHTML = `<div class="empty-request-box">Failed to load activity logs.</div>`;
-      }
-    }
-
     function logout() {
       localStorage.removeItem("adminToken");
       localStorage.removeItem("adminUsername");
@@ -777,6 +846,7 @@
     loadNotes();
     loadAdminList();
     loadActivityLogs();
+    loadTeamMembersAdmin();
   </script>
 
 </body>
