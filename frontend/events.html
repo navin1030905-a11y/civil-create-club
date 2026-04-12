@@ -31,30 +31,71 @@
       <span class="section-tag">Club Activities</span>
       <h1>Events & Engagement</h1>
       <p>
-        Showcase seminars, workshops, site visits, technical competitions and
+        Explore seminars, workshops, site visits, technical competitions, and
         student development activities in one modern section.
       </p>
     </section>
 
-    <section class="feature-grid">
-      <div class="feature-card">
-        <h3>Upcoming Workshops</h3>
-        <p>Technical learning sessions and expert-led discussions.</p>
+    <section class="premium-card fade-up">
+      <div class="section-head">
+        <div>
+          <span class="section-tag">Latest Updates</span>
+          <h2>Event Notices</h2>
+        </div>
       </div>
-      <div class="feature-card">
-        <h3>Seminars & Talks</h3>
-        <p>Departmental lectures, innovation talks and idea sessions.</p>
-      </div>
-      <div class="feature-card">
-        <h3>Past Club Events</h3>
-        <p>Keep records of all previous events and participation highlights.</p>
-      </div>
-      <div class="feature-card">
-        <h3>Student Participation</h3>
-        <p>Celebrate leadership, teamwork and technical contribution.</p>
+
+      <div id="eventsContainer" class="feature-grid">
+        <div class="empty-state">
+          <div class="loader"></div>
+        </div>
       </div>
     </section>
   </main>
+
+  <script>
+    const API_BASE = "https://civil-create-club.onrender.com";
+
+    async function loadEvents() {
+      const box = document.getElementById("eventsContainer");
+
+      try {
+        const res = await fetch(`${API_BASE}/notices`);
+        if (!res.ok) throw new Error("Failed to load notices");
+
+        const data = await res.json();
+
+        if (!Array.isArray(data) || data.length === 0) {
+          box.innerHTML = `
+            <div class="empty-state">
+              <h3>No event notices available</h3>
+              <p>Fresh event updates will appear here.</p>
+            </div>
+          `;
+          return;
+        }
+
+        box.innerHTML = data.map(item => `
+          <div class="feature-card">
+            <h3>${item.title || "Untitled Event"}</h3>
+            <p>${item.content || "No description available."}</p>
+            <p style="margin-top:12px; font-weight:600; color:#2563eb;">
+              ${item.type || "update"}
+            </p>
+          </div>
+        `).join("");
+      } catch (error) {
+        console.error("Events load error:", error);
+        box.innerHTML = `
+          <div class="empty-state">
+            <h3>Events unavailable</h3>
+            <p>Please check backend connection.</p>
+          </div>
+        `;
+      }
+    }
+
+    loadEvents();
+  </script>
 
 </body>
 </html>

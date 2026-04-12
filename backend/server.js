@@ -131,6 +131,38 @@ app.post("/add-gallery", verifyAdmin, upload.single("image"), (req, res) => {
     }
   );
 });
+/* ---------------- NOTES ---------------- */
+app.get("/notes", (req, res) => {
+  db.query("SELECT * FROM notes ORDER BY id DESC", (err, results) => {
+    if (err) {
+      console.error("Notes fetch error:", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+
+    return res.json(results);
+  });
+});
+
+app.post("/add-note", verifyAdmin, (req, res) => {
+  const { title, description, subject, pdf_link } = req.body;
+
+  if (!title || !description || !subject) {
+    return res.status(400).json({ message: "Title, description and subject are required" });
+  }
+
+  db.query(
+    "INSERT INTO notes (title, description, subject, pdf_link) VALUES (?, ?, ?, ?)",
+    [title, description, subject, pdf_link || ""],
+    (err) => {
+      if (err) {
+        console.error("Add note error:", err);
+        return res.status(500).json({ message: "Server error" });
+      }
+
+      return res.json({ message: "Note added successfully" });
+    }
+  );
+});
 
 /* ---------------- START ---------------- */
 app.listen(PORT, () => {

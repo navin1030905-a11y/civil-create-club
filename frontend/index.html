@@ -244,141 +244,153 @@
   </footer>
 
   <script>
-    <!-- const API_BASE = "http://localhost:3000"; -->
-    const API_BASE = "https://civil-create-club.onrender.com";
+  // const API_BASE = "http://localhost:3000";
+  const API_BASE = "https://civil-create-club.onrender.com";
 
-    function toggleMenu() {
-      document.getElementById("menu").style.right = "0";
-      document.getElementById("overlay").style.display = "block";
-    }
+  function toggleMenu() {
+    document.getElementById("menu").style.right = "0";
+    document.getElementById("overlay").style.display = "block";
+  }
 
-    function closeMenu() {
-      document.getElementById("menu").style.right = "-320px";
-      document.getElementById("overlay").style.display = "none";
-    }
+  function closeMenu() {
+    document.getElementById("menu").style.right = "-320px";
+    document.getElementById("overlay").style.display = "none";
+  }
 
-    const adminUser = localStorage.getItem("adminUsername");
-    const adminToken = localStorage.getItem("adminToken");
+  const adminUser = localStorage.getItem("adminUsername");
+  const adminToken = localStorage.getItem("adminToken");
 
-    const currentUserBox = document.getElementById("currentUserBox");
-    const menuUserArea = document.getElementById("menuUserArea");
-    const authLinks = document.getElementById("authLinks");
+  const currentUserBox = document.getElementById("currentUserBox");
+  const menuUserArea = document.getElementById("menuUserArea");
+  const authLinks = document.getElementById("authLinks");
 
-    if (adminUser && adminToken) {
-      currentUserBox.innerHTML = `<div class="current-user">Admin: ${adminUser}</div>`;
-      menuUserArea.innerHTML = `Logged in as <b>${adminUser}</b>`;
-      authLinks.innerHTML = `
-        <a href="admin.html">Admin Panel</a>
-        <a href="#" onclick="logout()">Logout</a>
-      `;
-    } else {
-      currentUserBox.innerHTML = ``;
-      menuUserArea.innerHTML = `Admin Access Only`;
-      authLinks.innerHTML = `
-        <a href="admin-login.html">Admin Login</a>
-        <a href="admin-request.html">Request Admin Access</a>
-      `;
-    }
+  if (adminUser && adminToken) {
+    currentUserBox.innerHTML = `<div class="current-user">Admin: ${adminUser}</div>`;
+    menuUserArea.innerHTML = `Logged in as <b>${adminUser}</b>`;
+    authLinks.innerHTML = `
+      <a href="admin.html">Admin Panel</a>
+      <a href="#" onclick="logout()">Logout</a>
+    `;
+  } else {
+    currentUserBox.innerHTML = ``;
+    menuUserArea.innerHTML = `Admin Access Only`;
+    authLinks.innerHTML = `
+      <a href="admin-login.html">Admin Login</a>
+      <a href="admin-request.html">Request Admin Access</a>
+    `;
+  }
 
-    function logout() {
-      localStorage.removeItem("adminUsername");
-      localStorage.removeItem("adminToken");
-      window.location = "index.html";
-    }
+  function logout() {
+    localStorage.removeItem("adminUsername");
+    localStorage.removeItem("adminToken");
+    window.location = "index.html";
+  }
 
-    fetch(`${API_BASE}/site-content`)
-      .then(res => res.json())
-      .then(data => {
-        if (data) {
-          document.getElementById("heroTitleText").innerText =
-            data.hero_title || "Welcome to Civil Engineering Club";
-          document.getElementById("heroSubtitleText").innerText =
-            data.hero_subtitle || "A platform for technical growth, collaboration, and departmental excellence.";
-        }
-      })
-      .catch(() => {});
+  fetch(`${API_BASE}/site-content`)
+    .then(res => {
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    })
+    .then(data => {
+      if (data) {
+        document.getElementById("heroTitleText").innerText =
+          data.hero_title || "Welcome to Civil Engineering Club";
+        document.getElementById("heroSubtitleText").innerText =
+          data.hero_subtitle || "A platform for technical growth, collaboration, and departmental excellence.";
+      }
+    })
+    .catch(() => {});
 
-    let notices = [];
-    let noticeIndex = 0;
+  let notices = [];
+  let noticeIndex = 0;
 
-    fetch(`${API_BASE}/notices`)
-      .then(res => res.json())
-      .then(data => {
-        notices = data;
-        if (notices.length > 0) {
-          showNotice();
-          setInterval(showNotice, 4500);
-        } else {
-          document.getElementById("noticeSlider").innerHTML = `
-            <div class="empty-state">
-              <h3>No notices available</h3>
-              <p>Fresh updates will appear here.</p>
-            </div>
-          `;
-        }
-      })
-      .catch(() => {
+  fetch(`${API_BASE}/notices`)
+    .then(res => {
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    })
+    .then(data => {
+      notices = data;
+      if (notices.length > 0) {
+        showNotice();
+        setInterval(showNotice, 4500);
+      } else {
         document.getElementById("noticeSlider").innerHTML = `
           <div class="empty-state">
-            <h3>Notices unavailable</h3>
-            <p>Please check backend connection.</p>
+            <h3>No notices available</h3>
+            <p>Fresh updates will appear here.</p>
           </div>
         `;
-      });
+      }
+    })
+    .catch(() => {
+      document.getElementById("noticeSlider").innerHTML = `
+        <div class="empty-state">
+          <h3>Notices unavailable</h3>
+          <p>Please check backend connection.</p>
+        </div>
+      `;
+    });
 
-    function showNotice() {
-      const box = document.getElementById("noticeSlider");
-      const n = notices[noticeIndex];
+  function showNotice() {
+    const box = document.getElementById("noticeSlider");
+    const n = notices[noticeIndex];
 
-      box.style.opacity = "0.3";
+    box.style.opacity = "0.3";
 
-      setTimeout(() => {
-        box.innerHTML = `
-          <div class="notice-inner">
-            <h3>${n.title}</h3>
-            <p>${n.content}</p>
-            <span class="notice-tag">${n.type}</span>
-          </div>
-        `;
-        box.style.opacity = "1";
-        noticeIndex = (noticeIndex + 1) % notices.length;
-      }, 250);
-    }
+    setTimeout(() => {
+      box.innerHTML = `
+        <div class="notice-inner">
+          <h3>${n.title || "Untitled Notice"}</h3>
+          <p>${n.content || "No content available."}</p>
+          <span class="notice-tag">${n.type || "update"}</span>
+        </div>
+      `;
+      box.style.opacity = "1";
+      noticeIndex = (noticeIndex + 1) % notices.length;
+    }, 250);
+  }
 
-    let galleryItems = [];
-    let galleryIndex = 0;
+  let galleryItems = [];
+  let galleryIndex = 0;
 
-    fetch(`${API_BASE}/gallery`)
-      .then(res => res.json())
-      .then(data => {
-        galleryItems = data;
-        if (galleryItems.length > 0) {
-          showGallery();
-          setInterval(showGallery, 3500);
-        } else {
-          document.getElementById("galleryTitle").innerText = "No images uploaded yet.";
-        }
-      })
-      .catch(() => {
-        document.getElementById("galleryTitle").innerText = "Gallery unavailable.";
-      });
+  fetch(`${API_BASE}/gallery`)
+    .then(res => {
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    })
+    .then(data => {
+      galleryItems = data;
+      if (galleryItems.length > 0) {
+        showGallery();
+        setInterval(showGallery, 3500);
+      } else {
+        document.getElementById("galleryImage").style.display = "none";
+        document.getElementById("galleryTitle").innerText = "No images uploaded yet.";
+      }
+    })
+    .catch(() => {
+      document.getElementById("galleryImage").style.display = "none";
+      document.getElementById("galleryTitle").innerText = "Gallery unavailable.";
+    });
 
-    function showGallery() {
-      const img = document.getElementById("galleryImage");
-      const title = document.getElementById("galleryTitle");
-      const item = galleryItems[galleryIndex];
+  function showGallery() {
+    const img = document.getElementById("galleryImage");
+    const title = document.getElementById("galleryTitle");
+    const item = galleryItems[galleryIndex];
 
-      img.style.opacity = "0";
-      title.style.opacity = "0";
+    img.style.opacity = "0";
+    title.style.opacity = "0";
 
-      setTimeout(() => {
-        img.src = `${API_BASE}/uploads/${item.image}`;
-        title.innerText = `${item.title} • ${item.category}`;
-        img.style.opacity = "1";
-        title.style.opacity = "1";
-        galleryIndex = (galleryIndex + 1) % galleryItems.length;
-      }, 250);
-    }
-  </script>
+    setTimeout(() => {
+      img.src = `${API_BASE}/uploads/${item.image}`;
+      title.innerText = `${item.title || "Gallery Image"}${item.category ? " • " + item.category : ""}`;
+      img.style.display = "block";
+      img.style.opacity = "1";
+      title.style.opacity = "1";
+      galleryIndex = (galleryIndex + 1) % galleryItems.length;
+    }, 250);
+  }
+</script>
 </body>
 </html>

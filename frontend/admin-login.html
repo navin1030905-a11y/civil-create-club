@@ -37,7 +37,7 @@
   </section>
 
   <script>
-    <!-- const API_BASE = "http://localhost:3000"; -->
+    // const API_BASE = "http://localhost:3000"; -->
     const API_BASE = "https://civil-create-club.onrender.com";
 
     async function adminLogin() {
@@ -72,8 +72,8 @@
 
         if (data.token) {
           localStorage.setItem("adminToken", data.token);
-          localStorage.setItem("adminUsername", data.username);
-          window.location.href = "index.html";
+          localStorage.setItem("adminUsername", data.username || username);
+          window.location.href = "admin.html";
         }
       } catch (error) {
         console.error(error);

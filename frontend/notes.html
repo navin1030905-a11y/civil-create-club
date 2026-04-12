@@ -31,30 +31,78 @@
       <span class="section-tag">Learning Resources</span>
       <h1>Subject Notes & Study Material</h1>
       <p>
-        Organized content for transportation, irrigation, structural engineering and
-        other subject-wise material in a neat academic repository.
+        Organized academic notes, subject material, and optional PDF resources
+        uploaded by the Civil Create Club admin team.
       </p>
     </section>
 
-    <section class="feature-grid">
-      <div class="feature-card">
-        <h3>Transportation Engineering</h3>
-        <p>Road, pavement, traffic and highway study notes.</p>
+    <section class="premium-card fade-up">
+      <div class="section-head">
+        <div>
+          <span class="section-tag">Notes</span>
+          <h2>Available Study Material</h2>
+        </div>
       </div>
-      <div class="feature-card">
-        <h3>Structural Engineering</h3>
-        <p>RCC, steel structure and analysis based content.</p>
-      </div>
-      <div class="feature-card">
-        <h3>Irrigation Engineering</h3>
-        <p>Canals, flow systems and water resource notes.</p>
-      </div>
-      <div class="feature-card">
-        <h3>PDF & Short Notes</h3>
-        <p>Future-ready area for PDFs, formulas and revision sheets.</p>
+
+      <div id="notesContainer" class="feature-grid">
+        <div class="empty-state">
+          <div class="loader"></div>
+        </div>
       </div>
     </section>
   </main>
+
+  <script>
+    const API_BASE = "https://civil-create-club.onrender.com";
+
+    async function loadNotes() {
+      const box = document.getElementById("notesContainer");
+
+      try {
+        const res = await fetch(`${API_BASE}/notes`);
+        if (!res.ok) throw new Error("Failed to load notes");
+
+        const data = await res.json();
+
+        if (!Array.isArray(data) || data.length === 0) {
+          box.innerHTML = `
+            <div class="empty-state">
+              <h3>No notes available</h3>
+              <p>Notes added by admin will appear here.</p>
+            </div>
+          `;
+          return;
+        }
+
+        box.innerHTML = data.map(item => `
+          <div class="feature-card">
+            <h3>${item.title || "Untitled Note"}</h3>
+            <p>${item.description || "No description available."}</p>
+            <p style="margin-top:12px; font-weight:600; color:#2563eb;">
+              ${item.subject || "General"}
+            </p>
+            ${item.pdf_link ? `
+              <p style="margin-top:14px;">
+                <a href="${item.pdf_link}" target="_blank" rel="noopener noreferrer" class="inner-back-btn">
+                  Open PDF
+                </a>
+              </p>
+            ` : ""}
+          </div>
+        `).join("");
+      } catch (error) {
+        console.error("Notes load error:", error);
+        box.innerHTML = `
+          <div class="empty-state">
+            <h3>Notes unavailable</h3>
+            <p>Please check backend connection.</p>
+          </div>
+        `;
+      }
+    }
+
+    loadNotes();
+  </script>
 
 </body>
 </html>

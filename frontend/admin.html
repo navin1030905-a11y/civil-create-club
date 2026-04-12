@@ -12,7 +12,7 @@
   <div class="admin-dashboard-wrap">
     <aside class="admin-sidebar">
       <div class="admin-brand">
-        <img src="images/logo.png" alt="logo">
+        <img src="images/logo.png" alt="Civil Club Logo">
         <div>
           <h3>Civil Create Club</h3>
           <p>Admin Dashboard</p>
@@ -20,11 +20,12 @@
       </div>
 
       <div class="admin-nav">
-        <a href="#homeEdit">🏠 Home Content</a>
-        <a href="#noticeSection">📢 Notices</a>
-        <a href="#gallerySection">🖼 Gallery Upload</a>
-        <a href="#requestSection">🧾 Access Requests</a>
-        <a href="index.html">↩ Back to Website</a>
+        <a href="#homeEdit">Home Content</a>
+        <a href="#noticeSection">Notices</a>
+        <a href="#gallerySection">Gallery Upload</a>
+        <a href="#notesSection">Notes</a>
+        <a href="#requestSection">Access Requests</a>
+        <a href="index.html">Back to Website</a>
       </div>
     </aside>
 
@@ -65,89 +66,135 @@
           <option value="past_event">Past Event</option>
           <option value="achievement">Achievement</option>
         </select>
-        <input type="file" id="galleryImageInput">
+        <input type="file" id="galleryImageInput" accept="image/*">
         <button onclick="uploadGallery()">Upload Image</button>
+      </section>
+
+      <section class="admin-card" id="notesSection">
+        <h2>Add Note</h2>
+        <p class="panel-desc">Add subject-wise notes and optional PDF links for students.</p>
+        <input id="noteTitle" placeholder="Note Title">
+        <textarea id="noteDescription" placeholder="Note Description"></textarea>
+        <input id="noteSubject" placeholder="Subject Name">
+        <input id="notePdfLink" placeholder="PDF Link (optional)">
+        <button onclick="addNote()">Add Note</button>
       </section>
 
       <section class="admin-card" id="requestSection">
         <h2>Pending Admin Requests</h2>
         <p class="panel-desc">Approve or reject access requests from users.</p>
-        <div id="requestsList"></div>
+        <div id="requestsList">
+          <div class="empty-request-box">Loading requests...</div>
+        </div>
       </section>
     </main>
   </div>
 
   <script>
-    <!-- const API_BASE = "http://localhost:3000"; -->
+    // const API_BASE = "http://localhost:3000";
     const API_BASE = "https://civil-create-club.onrender.com";
 
     const token = localStorage.getItem("adminToken");
+    const adminUsername = localStorage.getItem("adminUsername");
 
     if (!token) {
       alert("Admin login required");
-      window.location = "admin-login.html";
+      window.location.href = "admin-login.html";
     }
 
-    fetch(`${API_BASE}/admin-check`, {
-      headers: {
-        authorization: "Bearer " + token
-      }
-    })
-    .then(res => {
-      if (!res.ok) throw new Error("Unauthorized");
-      return res.json();
-    })
-    .catch(() => {
-      alert("Unauthorized");
-      window.location = "admin-login.html";
-    });
+    async function checkAdminAuth() {
+      try {
+        const res = await fetch(`${API_BASE}/admin-check`, {
+          headers: {
+            authorization: "Bearer " + token
+          }
+        });
 
-    fetch(`${API_BASE}/site-content`)
-      .then(res => res.json())
-      .then(data => {
-        if (data) {
-          document.getElementById("heroTitle").value = data.hero_title || "";
-          document.getElementById("heroSubtitle").value = data.hero_subtitle || "";
+        if (!res.ok) {
+          throw new Error("Unauthorized");
         }
-      });
+
+        await res.json();
+      } catch (error) {
+        alert("Unauthorized");
+        localStorage.removeItem("adminToken");
+        localStorage.removeItem("adminUsername");
+        window.location.href = "admin-login.html";
+      }
+    }
+
+    async function loadSiteContent() {
+      try {
+        const res = await fetch(`${API_BASE}/site-content`);
+        if (!res.ok) throw new Error("Failed to load site content");
+
+        const data = await res.json();
+
+        document.getElementById("heroTitle").value = data.hero_title || "";
+        document.getElementById("heroSubtitle").value = data.hero_subtitle || "";
+      } catch (error) {
+        console.error("Site content load error:", error);
+      }
+    }
 
     async function updateHomePage() {
-      const hero_title = document.getElementById("heroTitle").value;
-      const hero_subtitle = document.getElementById("heroSubtitle").value;
+      const hero_title = document.getElementById("heroTitle").value.trim();
+      const hero_subtitle = document.getElementById("heroSubtitle").value.trim();
 
-      const res = await fetch(`${API_BASE}/update-site-content`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          authorization: "Bearer " + token
-        },
-        body: JSON.stringify({ hero_title, hero_subtitle })
-      });
+      try {
+        const res = await fetch(`${API_BASE}/update-site-content`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            authorization: "Bearer " + token
+          },
+          body: JSON.stringify({ hero_title, hero_subtitle })
+        });
 
-      const data = await res.json();
-      alert(data.message);
+        const data = await res.json();
+        alert(data.message || "Home page updated");
+      } catch (error) {
+        console.error("Update home page error:", error);
+        alert("Server error");
+      }
     }
 
     async function addNotice() {
-      const title = document.getElementById("noticeTitle").value;
-      const content = document.getElementById("noticeContent").value;
+      const title = document.getElementById("noticeTitle").value.trim();
+      const content = document.getElementById("noticeContent").value.trim();
       const type = document.getElementById("noticeType").value;
 
-      const res = await fetch(`${API_BASE}/add-notice`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          authorization: "Bearer " + token
-        },
-        body: JSON.stringify({ title, content, type })
-      });
+      if (!title || !content || !type) {
+        alert("Please fill all notice fields");
+        return;
+      }
 
-      const data = await res.json();
-      alert(data.message);
+      try {
+        const res = await fetch(`${API_BASE}/add-notice`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            authorization: "Bearer " + token
+          },
+          body: JSON.stringify({ title, content, type })
+        });
+
+        const data = await res.json();
+        alert(data.message || "Notice added");
+
+        if (res.ok) {
+          document.getElementById("noticeTitle").value = "";
+          document.getElementById("noticeContent").value = "";
+          document.getElementById("noticeType").value = "upcoming";
+        }
+      } catch (error) {
+        console.error("Add notice error:", error);
+        alert("Server error");
+      }
     }
 
     async function uploadGallery() {
-      const title = document.getElementById("galleryTitleInput").value;
+      const title = document.getElementById("galleryTitleInput").value.trim();
       const category = document.getElementById("galleryCategory").value;
       const image = document.getElementById("galleryImageInput").files[0];
 
@@ -156,76 +203,144 @@
         return;
       }
 
-      let formData = new FormData();
-      formData.append("title", title);
-      formData.append("category", category);
-      formData.append("image", image);
+      try {
+        const formData = new FormData();
+        formData.append("title", title);
+        formData.append("category", category);
+        formData.append("image", image);
 
-      const res = await fetch(`${API_BASE}/add-gallery`, {
-        method: "POST",
-        headers: {
-          authorization: "Bearer " + token
-        },
-        body: formData
-      });
+        const res = await fetch(`${API_BASE}/add-gallery`, {
+          method: "POST",
+          headers: {
+            authorization: "Bearer " + token
+          },
+          body: formData
+        });
 
-      const data = await res.json();
-      alert(data.message);
+        const data = await res.json();
+        alert(data.message || "Image uploaded");
+
+        if (res.ok) {
+          document.getElementById("galleryTitleInput").value = "";
+          document.getElementById("galleryCategory").value = "past_event";
+          document.getElementById("galleryImageInput").value = "";
+        }
+      } catch (error) {
+        console.error("Upload gallery error:", error);
+        alert("Server error");
+      }
     }
 
-    async function loadRequests() {
-      const res = await fetch(`${API_BASE}/admin-requests`, {
-        headers: {
-          authorization: "Bearer " + token
-        }
-      });
+    async function addNote() {
+      const title = document.getElementById("noteTitle").value.trim();
+      const description = document.getElementById("noteDescription").value.trim();
+      const subject = document.getElementById("noteSubject").value.trim();
+      const pdf_link = document.getElementById("notePdfLink").value.trim();
 
-      const data = await res.json();
-      const list = document.getElementById("requestsList");
-
-      if (!data.length) {
-        list.innerHTML = `<div class="empty-request-box">No pending requests.</div>`;
+      if (!title || !description || !subject) {
+        alert("Please fill title, description and subject");
         return;
       }
 
-      list.innerHTML = data.map(req => `
-        <div class="request-card premium-request-card">
-          <div class="request-meta">
-            <h4>${req.username}</h4>
-            <p>${req.reason || "No reason provided."}</p>
+      try {
+        const res = await fetch(`${API_BASE}/add-note`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            authorization: "Bearer " + token
+          },
+          body: JSON.stringify({ title, description, subject, pdf_link })
+        });
+
+        const data = await res.json();
+        alert(data.message || "Note added");
+
+        if (res.ok) {
+          document.getElementById("noteTitle").value = "";
+          document.getElementById("noteDescription").value = "";
+          document.getElementById("noteSubject").value = "";
+          document.getElementById("notePdfLink").value = "";
+        }
+      } catch (error) {
+        console.error("Add note error:", error);
+        alert("Server error");
+      }
+    }
+
+    async function loadRequests() {
+      const list = document.getElementById("requestsList");
+
+      try {
+        const res = await fetch(`${API_BASE}/admin-requests`, {
+          headers: {
+            authorization: "Bearer " + token
+          }
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          list.innerHTML = `<div class="empty-request-box">${data.message || "Failed to load requests."}</div>`;
+          return;
+        }
+
+        if (!Array.isArray(data) || data.length === 0) {
+          list.innerHTML = `<div class="empty-request-box">No pending requests.</div>`;
+          return;
+        }
+
+        list.innerHTML = data.map(req => `
+          <div class="request-card premium-request-card">
+            <div class="request-meta">
+              <h4>${req.username}</h4>
+              <p>${req.reason || "No reason provided."}</p>
+            </div>
+            <div class="request-actions">
+              <button onclick="approveRequest(${req.id})">Approve</button>
+              <button onclick="rejectRequest(${req.id})" class="reject-btn">Reject</button>
+            </div>
           </div>
-          <div class="request-actions">
-            <button onclick="approveRequest(${req.id})">Approve</button>
-            <button onclick="rejectRequest(${req.id})" class="reject-btn">Reject</button>
-          </div>
-        </div>
-      `).join("");
+        `).join("");
+      } catch (error) {
+        console.error("Load requests error:", error);
+        list.innerHTML = `<div class="empty-request-box">Server error while loading requests.</div>`;
+      }
     }
 
     async function approveRequest(id) {
-      const res = await fetch(`${API_BASE}/approve-admin/${id}`, {
-        method: "POST",
-        headers: {
-          authorization: "Bearer " + token
-        }
-      });
+      try {
+        const res = await fetch(`${API_BASE}/approve-admin/${id}`, {
+          method: "POST",
+          headers: {
+            authorization: "Bearer " + token
+          }
+        });
 
-      const data = await res.json();
-      alert(data.message);
-      loadRequests();
+        const data = await res.json();
+        alert(data.message || "Request approved");
+        loadRequests();
+      } catch (error) {
+        console.error("Approve request error:", error);
+        alert("Server error");
+      }
     }
 
     async function rejectRequest(id) {
-      const res = await fetch(`${API_BASE}/reject-admin/${id}`, {
-        method: "POST",
-        headers: {
-          authorization: "Bearer " + token
-        }
-      });
+      try {
+        const res = await fetch(`${API_BASE}/reject-admin/${id}`, {
+          method: "POST",
+          headers: {
+            authorization: "Bearer " + token
+          }
+        });
 
-      const data = await res.json();
-      alert(data.message);
-      loadRequests();
+        const data = await res.json();
+        alert(data.message || "Request rejected");
+        loadRequests();
+      } catch (error) {
+        console.error("Reject request error:", error);
+        alert("Server error");
+      }
     }
 
     function logout() {
@@ -234,6 +349,8 @@
       window.location.href = "index.html";
     }
 
+    checkAdminAuth();
+    loadSiteContent();
     loadRequests();
   </script>
 
