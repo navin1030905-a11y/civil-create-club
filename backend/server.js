@@ -411,7 +411,77 @@ app.post("/add-note", verifyAdmin, (req, res) => {
     }
   );
 });
+/* ---------------- DELETE NOTICE ---------------- */
+app.delete("/delete-notice/:id", verifyAdmin, (req, res) => {
+  const id = req.params.id;
 
+  db.query("DELETE FROM notices WHERE id = ?", [id], (err, result) => {
+    if (err) {
+      console.error("Delete notice error:", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Notice not found" });
+    }
+
+    return res.json({ message: "Notice deleted successfully" });
+  });
+});
+
+/* ---------------- DELETE GALLERY ---------------- */
+app.delete("/delete-gallery/:id", verifyAdmin, (req, res) => {
+  const id = req.params.id;
+
+  db.query("SELECT * FROM gallery WHERE id = ? LIMIT 1", [id], (err, results) => {
+    if (err) {
+      console.error("Read gallery delete error:", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+
+    if (results.length === 0) {
+      return res.status(404).json({ message: "Gallery item not found" });
+    }
+
+    const item = results[0];
+    const imagePath = path.join(uploadsPath, item.image);
+
+    db.query("DELETE FROM gallery WHERE id = ?", [id], (deleteErr, result) => {
+      if (deleteErr) {
+        console.error("Delete gallery DB error:", deleteErr);
+        return res.status(500).json({ message: "Server error" });
+      }
+
+      if (fs.existsSync(imagePath)) {
+        fs.unlink(imagePath, (fileErr) => {
+          if (fileErr) {
+            console.error("Delete gallery file error:", fileErr);
+          }
+        });
+      }
+
+      return res.json({ message: "Gallery item deleted successfully" });
+    });
+  });
+});
+
+/* ---------------- DELETE NOTE ---------------- */
+app.delete("/delete-note/:id", verifyAdmin, (req, res) => {
+  const id = req.params.id;
+
+  db.query("DELETE FROM notes WHERE id = ?", [id], (err, result) => {
+    if (err) {
+      console.error("Delete note error:", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Note not found" });
+    }
+
+    return res.json({ message: "Note deleted successfully" });
+  });
+});
 /* ---------------- START ---------------- */
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);

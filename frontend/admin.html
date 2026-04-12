@@ -22,8 +22,11 @@
       <div class="admin-nav">
         <a href="#homeEdit">Home Content</a>
         <a href="#noticeSection">Notices</a>
+        <a href="#noticeManageSection">Manage Notices</a>
         <a href="#gallerySection">Gallery Upload</a>
+        <a href="#galleryManageSection">Manage Gallery</a>
         <a href="#notesSection">Notes</a>
+        <a href="#notesManageSection">Manage Notes</a>
         <a href="#requestSection">Access Requests</a>
         <a href="index.html">Back to Website</a>
       </div>
@@ -58,6 +61,14 @@
         <button onclick="addNotice()">Publish Notice</button>
       </section>
 
+      <section class="admin-card" id="noticeManageSection">
+        <h2>Manage Notices</h2>
+        <p class="panel-desc">Delete old or incorrect notices.</p>
+        <div id="noticeListBox">
+          <div class="empty-request-box">Loading notices...</div>
+        </div>
+      </section>
+
       <section class="admin-card" id="gallerySection">
         <h2>Upload Gallery Item</h2>
         <p class="panel-desc">Upload past event images or achievement highlights.</p>
@@ -70,6 +81,14 @@
         <button onclick="uploadGallery()">Upload Image</button>
       </section>
 
+      <section class="admin-card" id="galleryManageSection">
+        <h2>Manage Gallery</h2>
+        <p class="panel-desc">Delete uploaded gallery items.</p>
+        <div id="galleryListBox">
+          <div class="empty-request-box">Loading gallery...</div>
+        </div>
+      </section>
+
       <section class="admin-card" id="notesSection">
         <h2>Add Note</h2>
         <p class="panel-desc">Add subject-wise notes and optional PDF links for students.</p>
@@ -78,6 +97,14 @@
         <input id="noteSubject" placeholder="Subject Name">
         <input id="notePdfLink" placeholder="PDF Link (optional)">
         <button onclick="addNote()">Add Note</button>
+      </section>
+
+      <section class="admin-card" id="notesManageSection">
+        <h2>Manage Notes</h2>
+        <p class="panel-desc">Delete notes added earlier.</p>
+        <div id="notesListBox">
+          <div class="empty-request-box">Loading notes...</div>
+        </div>
       </section>
 
       <section class="admin-card" id="requestSection">
@@ -91,11 +118,9 @@
   </div>
 
   <script>
-    // const API_BASE = "http://localhost:3000";
     const API_BASE = "https://civil-create-club.onrender.com";
 
     const token = localStorage.getItem("adminToken");
-    const adminUsername = localStorage.getItem("adminUsername");
 
     if (!token) {
       alert("Admin login required");
@@ -110,10 +135,7 @@
           }
         });
 
-        if (!res.ok) {
-          throw new Error("Unauthorized");
-        }
-
+        if (!res.ok) throw new Error("Unauthorized");
         await res.json();
       } catch (error) {
         alert("Unauthorized");
@@ -126,14 +148,12 @@
     async function loadSiteContent() {
       try {
         const res = await fetch(`${API_BASE}/site-content`);
-        if (!res.ok) throw new Error("Failed to load site content");
-
         const data = await res.json();
 
         document.getElementById("heroTitle").value = data.hero_title || "";
         document.getElementById("heroSubtitle").value = data.hero_subtitle || "";
       } catch (error) {
-        console.error("Site content load error:", error);
+        console.error(error);
       }
     }
 
@@ -152,9 +172,8 @@
         });
 
         const data = await res.json();
-        alert(data.message || "Home page updated");
+        alert(data.message || "Updated");
       } catch (error) {
-        console.error("Update home page error:", error);
         alert("Server error");
       }
     }
@@ -186,9 +205,9 @@
           document.getElementById("noticeTitle").value = "";
           document.getElementById("noticeContent").value = "";
           document.getElementById("noticeType").value = "upcoming";
+          loadNotices();
         }
       } catch (error) {
-        console.error("Add notice error:", error);
         alert("Server error");
       }
     }
@@ -218,15 +237,15 @@
         });
 
         const data = await res.json();
-        alert(data.message || "Image uploaded");
+        alert(data.message || "Uploaded");
 
         if (res.ok) {
           document.getElementById("galleryTitleInput").value = "";
           document.getElementById("galleryCategory").value = "past_event";
           document.getElementById("galleryImageInput").value = "";
+          loadGalleryItems();
         }
       } catch (error) {
-        console.error("Upload gallery error:", error);
         alert("Server error");
       }
     }
@@ -260,9 +279,154 @@
           document.getElementById("noteDescription").value = "";
           document.getElementById("noteSubject").value = "";
           document.getElementById("notePdfLink").value = "";
+          loadNotes();
         }
       } catch (error) {
-        console.error("Add note error:", error);
+        alert("Server error");
+      }
+    }
+
+    async function loadNotices() {
+      const box = document.getElementById("noticeListBox");
+
+      try {
+        const res = await fetch(`${API_BASE}/notices`);
+        const data = await res.json();
+
+        if (!Array.isArray(data) || data.length === 0) {
+          box.innerHTML = `<div class="empty-request-box">No notices found.</div>`;
+          return;
+        }
+
+        box.innerHTML = data.map(item => `
+          <div class="request-card premium-request-card">
+            <div class="request-meta">
+              <h4>${item.title}</h4>
+              <p>${item.content}</p>
+              <p><strong>Type:</strong> ${item.type}</p>
+            </div>
+            <div class="request-actions">
+              <button class="reject-btn" onclick="deleteNotice(${item.id})">Delete</button>
+            </div>
+          </div>
+        `).join("");
+      } catch (error) {
+        box.innerHTML = `<div class="empty-request-box">Failed to load notices.</div>`;
+      }
+    }
+
+    async function loadGalleryItems() {
+      const box = document.getElementById("galleryListBox");
+
+      try {
+        const res = await fetch(`${API_BASE}/gallery`);
+        const data = await res.json();
+
+        if (!Array.isArray(data) || data.length === 0) {
+          box.innerHTML = `<div class="empty-request-box">No gallery items found.</div>`;
+          return;
+        }
+
+        box.innerHTML = data.map(item => `
+          <div class="request-card premium-request-card">
+            <div class="request-meta">
+              <h4>${item.title || "Untitled"}</h4>
+              <p>${item.category || "No category"}</p>
+              <p>${item.image}</p>
+            </div>
+            <div class="request-actions">
+              <button class="reject-btn" onclick="deleteGallery(${item.id})">Delete</button>
+            </div>
+          </div>
+        `).join("");
+      } catch (error) {
+        box.innerHTML = `<div class="empty-request-box">Failed to load gallery.</div>`;
+      }
+    }
+
+    async function loadNotes() {
+      const box = document.getElementById("notesListBox");
+
+      try {
+        const res = await fetch(`${API_BASE}/notes`);
+        const data = await res.json();
+
+        if (!Array.isArray(data) || data.length === 0) {
+          box.innerHTML = `<div class="empty-request-box">No notes found.</div>`;
+          return;
+        }
+
+        box.innerHTML = data.map(item => `
+          <div class="request-card premium-request-card">
+            <div class="request-meta">
+              <h4>${item.title}</h4>
+              <p>${item.description}</p>
+              <p><strong>Subject:</strong> ${item.subject}</p>
+              <p><strong>PDF:</strong> ${item.pdf_link || "Not added"}</p>
+            </div>
+            <div class="request-actions">
+              <button class="reject-btn" onclick="deleteNote(${item.id})">Delete</button>
+            </div>
+          </div>
+        `).join("");
+      } catch (error) {
+        box.innerHTML = `<div class="empty-request-box">Failed to load notes.</div>`;
+      }
+    }
+
+    async function deleteNotice(id) {
+      if (!confirm("Delete this notice?")) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/delete-notice/${id}`, {
+          method: "DELETE",
+          headers: {
+            authorization: "Bearer " + token
+          }
+        });
+
+        const data = await res.json();
+        alert(data.message || "Deleted");
+        loadNotices();
+      } catch (error) {
+        alert("Server error");
+      }
+    }
+
+    async function deleteGallery(id) {
+      if (!confirm("Delete this gallery item?")) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/delete-gallery/${id}`, {
+          method: "DELETE",
+          headers: {
+            authorization: "Bearer " + token
+          }
+        });
+
+        const data = await res.json();
+        alert(data.message || "Deleted");
+        loadGalleryItems();
+      } catch (error) {
+        alert("Server error");
+      }
+    }
+
+    async function deleteNote(id) {
+      if (!confirm("Delete this note?")) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/delete-note/${id}`, {
+          method: "DELETE",
+          headers: {
+            authorization: "Bearer " + token
+          }
+        });
+
+        const data = await res.json();
+        alert(data.message || "Deleted");
+        loadNotes();
+      } catch (error) {
         alert("Server error");
       }
     }
@@ -302,7 +466,6 @@
           </div>
         `).join("");
       } catch (error) {
-        console.error("Load requests error:", error);
         list.innerHTML = `<div class="empty-request-box">Server error while loading requests.</div>`;
       }
     }
@@ -317,10 +480,9 @@
         });
 
         const data = await res.json();
-        alert(data.message || "Request approved");
+        alert(data.message || "Approved");
         loadRequests();
       } catch (error) {
-        console.error("Approve request error:", error);
         alert("Server error");
       }
     }
@@ -335,10 +497,9 @@
         });
 
         const data = await res.json();
-        alert(data.message || "Request rejected");
+        alert(data.message || "Rejected");
         loadRequests();
       } catch (error) {
-        console.error("Reject request error:", error);
         alert("Server error");
       }
     }
@@ -352,6 +513,9 @@
     checkAdminAuth();
     loadSiteContent();
     loadRequests();
+    loadNotices();
+    loadGalleryItems();
+    loadNotes();
   </script>
 
 </body>
