@@ -31,3 +31,50 @@ async function loadActivityLogs() {
         box.innerHTML = `<div class="empty-request-box">Failed to load activity logs.</div>`;
       }
     }
+    admin log sa delete 
+    async function addMember() {
+  const name = document.getElementById("memberName").value.trim();
+  const role = document.getElementById("memberRole").value.trim();
+  const category = document.getElementById("memberCategory").value;
+  const description = document.getElementById("memberDescription").value.trim();
+  const image = document.getElementById("memberImage").files[0];
+
+  if (!name || !role || !category) {
+    alert("Please fill name, role and category");
+    return;
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append("name", name);
+    formData.append("role", role);
+    formData.append("category", category);
+    formData.append("description", description);
+    if (image) {
+      formData.append("image", image);
+    }
+
+    const res = await fetch(`${API_BASE}/add-member`, {
+      method: "POST",
+      headers: {
+        authorization: "Bearer " + token
+      },
+      body: formData
+    });
+
+    const data = await res.json();
+    alert(data.message || "Member added");
+
+    if (res.ok) {
+      document.getElementById("memberName").value = "";
+      document.getElementById("memberRole").value = "";
+      document.getElementById("memberCategory").value = "faculty";
+      document.getElementById("memberDescription").value = "";
+      document.getElementById("memberImage").value = "";
+      loadTeamMembersAdmin();
+    }
+  } catch (error) {
+    console.error("Add member error:", error);
+    alert("Server error");
+  }
+}
