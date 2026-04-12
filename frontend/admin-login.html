@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login - Civil Crete Club</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Cinzel:wght@500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="inner-page">
+
+  <section class="admin-login-wrap">
+    <div class="admin-login-left">
+      <img src="images/logo.png" alt="Civil Club Logo" class="admin-login-logo">
+      <span class="admin-login-badge">Secure Access</span>
+      <h1>Admin Control Login</h1>
+      <p>
+        Access the official Civil Crete Club dashboard to manage notices,
+        achievements, gallery highlights, and club content.
+      </p>
+    </div>
+
+    <div class="admin-login-card">
+      <h2>Admin Login</h2>
+      <p class="admin-login-sub">Use your approved admin credentials</p>
+
+      <input id="adminUser" type="text" placeholder="Admin Username" autocomplete="username">
+      <input id="adminPass" type="password" placeholder="Password" autocomplete="current-password">
+
+      <button onclick="adminLogin()">Login</button>
+
+      <div class="admin-login-links">
+        <a href="admin-request.html">Request Admin Access</a>
+        <a href="index.html">Back to Home</a>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    <!-- const API_BASE = "http://localhost:3000"; -->
+    const API_BASE = "https://civil-create-club.onrender.com";
+
+    async function adminLogin() {
+      const username = document.getElementById("adminUser").value.trim();
+      const password = document.getElementById("adminPass").value.trim();
+
+      if (!username || !password) {
+        alert("Username and password required");
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/admin-login`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ username, password })
+        });
+
+        const text = await res.text();
+        let data;
+
+        try {
+          data = JSON.parse(text);
+        } catch {
+          alert("Server error");
+          return;
+        }
+
+        alert(data.message || "Something went wrong");
+
+        if (data.token) {
+          localStorage.setItem("adminToken", data.token);
+          localStorage.setItem("adminUsername", data.username);
+          window.location.href = "index.html";
+        }
+      } catch (error) {
+        console.error(error);
+        alert("Server error");
+      }
+    }
+  </script>
+
+</body>
+</html>

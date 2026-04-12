@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "../../civil_club1"
+		},
+		{
+			"path": ".."
+		}
+	],
+	"settings": {
+		"liveServer.settings.multiRootWorkspaceName": "civil_club",
+		"liveServer.settings.port": 5501
+	}
+}

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel - Civil Create Club</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="dashboard-page">
+
+  <div class="admin-dashboard-wrap">
+    <aside class="admin-sidebar">
+      <div class="admin-brand">
+        <img src="images/logo.png" alt="logo">
+        <div>
+          <h3>Civil Create Club</h3>
+          <p>Admin Dashboard</p>
+        </div>
+      </div>
+
+      <div class="admin-nav">
+        <a href="#homeEdit">🏠 Home Content</a>
+        <a href="#noticeSection">📢 Notices</a>
+        <a href="#gallerySection">🖼 Gallery Upload</a>
+        <a href="#requestSection">🧾 Access Requests</a>
+        <a href="index.html">↩ Back to Website</a>
+      </div>
+    </aside>
+
+    <main class="admin-main">
+      <div class="admin-topbar">
+        <div>
+          <span class="dashboard-tag">Control Center</span>
+          <h1>Club Administration Panel</h1>
+        </div>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+      </div>
+
+      <section class="admin-card" id="homeEdit">
+        <h2>Edit Home Page</h2>
+        <p class="panel-desc">Update the main headline and subtitle shown on the home page hero section.</p>
+        <input id="heroTitle" placeholder="Hero Title">
+        <input id="heroSubtitle" placeholder="Hero Subtitle">
+        <button onclick="updateHomePage()">Update Home Page</button>
+      </section>
+
+      <section class="admin-card" id="noticeSection">
+        <h2>Add Notice</h2>
+        <p class="panel-desc">Create a new notice for students and club members.</p>
+        <input id="noticeTitle" placeholder="Notice Title">
+        <textarea id="noticeContent" placeholder="Notice Content"></textarea>
+        <select id="noticeType">
+          <option value="upcoming">Upcoming</option>
+          <option value="current">Current</option>
+        </select>
+        <button onclick="addNotice()">Publish Notice</button>
+      </section>
+
+      <section class="admin-card" id="gallerySection">
+        <h2>Upload Gallery Item</h2>
+        <p class="panel-desc">Upload past event images or achievement highlights.</p>
+        <input id="galleryTitleInput" placeholder="Image Title">
+        <select id="galleryCategory">
+          <option value="past_event">Past Event</option>
+          <option value="achievement">Achievement</option>
+        </select>
+        <input type="file" id="galleryImageInput">
+        <button onclick="uploadGallery()">Upload Image</button>
+      </section>
+
+      <section class="admin-card" id="requestSection">
+        <h2>Pending Admin Requests</h2>
+        <p class="panel-desc">Approve or reject access requests from users.</p>
+        <div id="requestsList"></div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    <!-- const API_BASE = "http://localhost:3000"; -->
+    const API_BASE = "https://civil-create-club.onrender.com";
+
+    const token = localStorage.getItem("adminToken");
+
+    if (!token) {
+      alert("Admin login required");
+      window.location = "admin-login.html";
+    }
+
+    fetch(`${API_BASE}/admin-check`, {
+      headers: {
+        authorization: "Bearer " + token
+      }
+    })
+    .then(res => {
+      if (!res.ok) throw new Error("Unauthorized");
+      return res.json();
+    })
+    .catch(() => {
+      alert("Unauthorized");
+      window.location = "admin-login.html";
+    });
+
+    fetch(`${API_BASE}/site-content`)
+      .then(res => res.json())
+      .then(data => {
+        if (data) {
+          document.getElementById("heroTitle").value = data.hero_title || "";
+          document.getElementById("heroSubtitle").value = data.hero_subtitle || "";
+        }
+      });
+
+    async function updateHomePage() {
+      const hero_title = document.getElementById("heroTitle").value;
+      const hero_subtitle = document.getElementById("heroSubtitle").value;
+
+      const res = await fetch(`${API_BASE}/update-site-content`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          authorization: "Bearer " + token
+        },
+        body: JSON.stringify({ hero_title, hero_subtitle })
+      });
+
+      const data = await res.json();
+      alert(data.message);
+    }
+
+    async function addNotice() {
+      const title = document.getElementById("noticeTitle").value;
+      const content = document.getElementById("noticeContent").value;
+      const type = document.getElementById("noticeType").value;
+
+      const res = await fetch(`${API_BASE}/add-notice`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          authorization: "Bearer " + token
+        },
+        body: JSON.stringify({ title, content, type })
+      });
+
+      const data = await res.json();
+      alert(data.message);
+    }
+
+    async function uploadGallery() {
+      const title = document.getElementById("galleryTitleInput").value;
+      const category = document.getElementById("galleryCategory").value;
+      const image = document.getElementById("galleryImageInput").files[0];
+
+      if (!image) {
+        alert("Please select an image");
+        return;
+      }
+
+      let formData = new FormData();
+      formData.append("title", title);
+      formData.append("category", category);
+      formData.append("image", image);
+
+      const res = await fetch(`${API_BASE}/add-gallery`, {
+        method: "POST",
+        headers: {
+          authorization: "Bearer " + token
+        },
+        body: formData
+      });
+
+      const data = await res.json();
+      alert(data.message);
+    }
+
+    async function loadRequests() {
+      const res = await fetch(`${API_BASE}/admin-requests`, {
+        headers: {
+          authorization: "Bearer " + token
+        }
+      });
+
+      const data = await res.json();
+      const list = document.getElementById("requestsList");
+
+      if (!data.length) {
+        list.innerHTML = `<div class="empty-request-box">No pending requests.</div>`;
+        return;
+      }
+
+      list.innerHTML = data.map(req => `
+        <div class="request-card premium-request-card">
+          <div class="request-meta">
+            <h4>${req.username}</h4>
+            <p>${req.reason || "No reason provided."}</p>
+          </div>
+          <div class="request-actions">
+            <button onclick="approveRequest(${req.id})">Approve</button>
+            <button onclick="rejectRequest(${req.id})" class="reject-btn">Reject</button>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    async function approveRequest(id) {
+      const res = await fetch(`${API_BASE}/approve-admin/${id}`, {
+        method: "POST",
+        headers: {
+          authorization: "Bearer " + token
+        }
+      });
+
+      const data = await res.json();
+      alert(data.message);
+      loadRequests();
+    }
+
+    async function rejectRequest(id) {
+      const res = await fetch(`${API_BASE}/reject-admin/${id}`, {
+        method: "POST",
+        headers: {
+          authorization: "Bearer " + token
+        }
+      });
+
+      const data = await res.json();
+      alert(data.message);
+      loadRequests();
+    }
+
+    function logout() {
+      localStorage.removeItem("adminToken");
+      localStorage.removeItem("adminUsername");
+      window.location.href = "index.html";
+    }
+
+    loadRequests();
+  </script>
+
+</body>
+</html>

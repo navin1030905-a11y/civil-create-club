@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Civil Crete Club</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Cinzel:wght@500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <div class="site-bg-shape shape-1"></div>
+  <div class="site-bg-shape shape-2"></div>
+
+  <header class="navbar">
+    <div class="brand-wrap">
+      <div class="brand">
+        <img src="images/logo.png" alt="Civil Club Logo" class="brand-logo">
+
+        <div class="brand-text-group">
+          <span class="brand-text">Civil Crete Club</span>
+          <span class="college-name">Bhagalpur College of Engineering</span>
+          <div class="brand-subnav">
+            <a href="index.html" class="active">Home</a>
+            <a href="notes.html">Notes</a>
+            <a href="events.html">Events</a>
+            <a href="gallery.html">Achievements</a>
+            <a href="#aboutSection">About</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- <nav class="top-nav desktop-nav">
+      
+    </nav> -->
+
+    <div class="top-right">
+      <div id="currentUserBox"></div>
+      <button class="menu-icon" onclick="toggleMenu()" aria-label="Open Menu">☰</button>
+    </div>
+  </header>
+
+  <aside id="menu" class="side-menu">
+    <div id="menuUserArea" class="menu-user"></div>
+
+    <div class="menu-section-title">Navigation</div>
+    <a href="index.html">Home</a>
+    <a href="notes.html">Notes</a>
+    <a href="events.html">Events</a>
+    <a href="gallery.html">Achievements</a>
+    <a href="#facultySection" onclick="closeMenu()">Faculty</a>
+    <a href="#teamSection" onclick="closeMenu()">Team</a>
+    <a href="#aboutSection" onclick="closeMenu()">About</a>
+
+    <hr>
+
+    <div class="menu-section-title">Access</div>
+    <div id="authLinks"></div>
+  </aside>
+
+  <div id="overlay" class="overlay" onclick="closeMenu()"></div>
+
+  <section class="hero">
+    <div class="hero-overlay"></div>
+    <div class="hero-content fade-up">
+      <span class="hero-badge">Civil Engineering • Leadership • Innovation</span>
+      <h1 id="heroTitleText">Welcome to Civil Engineering Club</h1>
+      <p id="heroSubtitleText">A platform for technical growth, collaboration, and departmental excellence.</p>
+
+      <div class="hero-actions">
+        <a href="#noticeSection" class="hero-btn primary-btn">Explore Notices</a>
+        <a href="#gallerySection" class="hero-btn secondary-btn">View Highlights</a>
+      </div>
+    </div>
+  </section>
+
+  <main class="main-section">
+    <section class="notice-box premium-card fade-up" id="noticeSection">
+      <div class="section-head">
+        <div>
+          <span class="section-tag">Updates</span>
+          <h2>Upcoming / Current Notices</h2>
+        </div>
+      </div>
+
+      <div id="noticeSlider" class="slider-content">
+        <div class="loader"></div>
+      </div>
+    </section>
+
+    <section class="gallery-box premium-card fade-up" id="gallerySection">
+      <div class="section-head">
+        <div>
+          <span class="section-tag">Highlights</span>
+          <h2>Past Events / Achievements</h2>
+        </div>
+      </div>
+
+      <div class="gallery-slider">
+        <div class="gallery-frame">
+          <img id="galleryImage" src="" alt="Gallery">
+        </div>
+        <div id="galleryTitle" class="gallery-title">Loading gallery...</div>
+      </div>
+    </section>
+  </main>
+
+  <section class="faculty-section fade-up" id="facultySection">
+    <div class="section-center-head">
+      <span class="section-tag">Faculty Guidance</span>
+      <h2>Faculty Coordinators</h2>
+      <p>Guiding the club with academic support, mentoring, and departmental leadership.</p>
+    </div>
+
+    <div class="faculty-grid">
+      <div class="faculty-card">
+        <div class="faculty-avatar">FC</div>
+        <h3>Faculty Coordinator</h3>
+        <p class="faculty-role">Civil Engineering Department</p>
+        <p class="faculty-desc">Provides technical guidance, academic vision, and leadership support for club activities.</p>
+      </div>
+
+      <div class="faculty-card">
+        <div class="faculty-avatar">MC</div>
+        <h3>Mentor Faculty</h3>
+        <p class="faculty-role">Academic Advisor</p>
+        <p class="faculty-desc">Supports planning, student engagement, and coordination in departmental events.</p>
+      </div>
+
+      <div class="faculty-card">
+        <div class="faculty-avatar">HC</div>
+        <h3>Head Support</h3>
+        <p class="faculty-role">Departmental Leadership</p>
+        <p class="faculty-desc">Encourages institutional growth, innovation culture, and professional discipline.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="team-section fade-up" id="teamSection">
+    <div class="section-center-head">
+      <span class="section-tag">Student Team</span>
+      <h2>Core Club Team</h2>
+      <p>Student leaders and coordinators who drive the identity and energy of the club.</p>
+    </div>
+
+    <div class="team-grid">
+      <div class="team-card">
+        <div class="team-avatar">P</div>
+        <h3>President</h3>
+        <p>Leads the club vision, planning, and major initiatives.</p>
+      </div>
+
+      <div class="team-card">
+        <div class="team-avatar">V</div>
+        <h3>Vice President</h3>
+        <p>Supports coordination, execution, and student engagement.</p>
+      </div>
+
+      <div class="team-card">
+        <div class="team-avatar">S</div>
+        <h3>Secretary</h3>
+        <p>Handles communication, scheduling, and activity management.</p>
+      </div>
+
+      <div class="team-card">
+        <div class="team-avatar">T</div>
+        <h3>Technical Lead</h3>
+        <p>Focuses on workshops, innovation ideas, and engineering activities.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="about-strip fade-up" id="aboutSection">
+    <div class="about-strip-card">
+      <span class="section-tag">About Club</span>
+      <h2>Building Future Civil Engineers with Vision and Practical Excellence</h2>
+      <p>
+        Civil Create Club is a student-driven academic and activity platform for the Civil Engineering department.
+        It promotes technical learning, teamwork, practical exposure, professional development, and leadership through
+        workshops, site visits, events, achievements, and collaborative activities.
+      </p>
+    </div>
+  </section>
+  <section class="feature-showcase fade-up">
+    <div class="feature-modern-card">
+      <h3>Technical Workshops</h3>
+      <p>Hands-on sessions on structures, transportation, surveying, and practical civil engineering topics.</p>
+    </div>
+
+    <div class="feature-modern-card">
+      <h3>Site Visit Exposure</h3>
+      <p>Real-world learning from construction practices, project execution, and field engineering methods.</p>
+    </div>
+
+    <div class="feature-modern-card">
+      <h3>Academic Support</h3>
+      <p>Organized notes, peer coordination, concept support, and a stronger academic environment for students.</p>
+    </div>
+
+    <div class="feature-modern-card">
+      <h3>Achievements & Leadership</h3>
+      <p>Celebrating innovation, student growth, participation, and departmental pride through visible milestones.</p>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <img src="images/logo.png" alt="Civil Club Logo">
+        <div>
+          <h3>Civil Crete Club</h3>
+          <p>Bhagalpur College of Engineering</p>
+        </div>
+      </div>
+
+      <div class="footer-col">
+        <h4>Quick Links</h4>
+        <a href="index.html">Home</a>
+        <a href="notes.html">Notes</a>
+        <a href="events.html">Events</a>
+        <a href="gallery.html">Achievements</a>
+      </div>
+
+      <div class="footer-col">
+        <h4>Club Sections</h4>
+        <a href="#facultySection">Faculty</a>
+        <a href="#teamSection">Team</a>
+        <a href="#aboutSection">About</a>
+        <a href="#noticeSection">Notices</a>
+      </div>
+
+      <div class="footer-col">
+        <h4>Identity</h4>
+        <p>Technical Growth</p>
+        <p>Student Leadership</p>
+        <p>Department Pride</p>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      © 2026 Civil Crete Club • Bhagalpur College of Engineering
+    </div>
+  </footer>
+
+  <script>
+    <!-- const API_BASE = "http://localhost:3000"; -->
+    const API_BASE = "https://civil-create-club.onrender.com";
+
+    function toggleMenu() {
+      document.getElementById("menu").style.right = "0";
+      document.getElementById("overlay").style.display = "block";
+    }
+
+    function closeMenu() {
+      document.getElementById("menu").style.right = "-320px";
+      document.getElementById("overlay").style.display = "none";
+    }
+
+    const adminUser = localStorage.getItem("adminUsername");
+    const adminToken = localStorage.getItem("adminToken");
+
+    const currentUserBox = document.getElementById("currentUserBox");
+    const menuUserArea = document.getElementById("menuUserArea");
+    const authLinks = document.getElementById("authLinks");
+
+    if (adminUser && adminToken) {
+      currentUserBox.innerHTML = `<div class="current-user">Admin: ${adminUser}</div>`;
+      menuUserArea.innerHTML = `Logged in as <b>${adminUser}</b>`;
+      authLinks.innerHTML = `
+        <a href="admin.html">Admin Panel</a>
+        <a href="#" onclick="logout()">Logout</a>
+      `;
+    } else {
+      currentUserBox.innerHTML = ``;
+      menuUserArea.innerHTML = `Admin Access Only`;
+      authLinks.innerHTML = `
+        <a href="admin-login.html">Admin Login</a>
+        <a href="admin-request.html">Request Admin Access</a>
+      `;
+    }
+
+    function logout() {
+      localStorage.removeItem("adminUsername");
+      localStorage.removeItem("adminToken");
+      window.location = "index.html";
+    }
+
+    fetch(`${API_BASE}/site-content`)
+      .then(res => res.json())
+      .then(data => {
+        if (data) {
+          document.getElementById("heroTitleText").innerText =
+            data.hero_title || "Welcome to Civil Engineering Club";
+          document.getElementById("heroSubtitleText").innerText =
+            data.hero_subtitle || "A platform for technical growth, collaboration, and departmental excellence.";
+        }
+      })
+      .catch(() => {});
+
+    let notices = [];
+    let noticeIndex = 0;
+
+    fetch(`${API_BASE}/notices`)
+      .then(res => res.json())
+      .then(data => {
+        notices = data;
+        if (notices.length > 0) {
+          showNotice();
+          setInterval(showNotice, 4500);
+        } else {
+          document.getElementById("noticeSlider").innerHTML = `
+            <div class="empty-state">
+              <h3>No notices available</h3>
+              <p>Fresh updates will appear here.</p>
+            </div>
+          `;
+        }
+      })
+      .catch(() => {
+        document.getElementById("noticeSlider").innerHTML = `
+          <div class="empty-state">
+            <h3>Notices unavailable</h3>
+            <p>Please check backend connection.</p>
+          </div>
+        `;
+      });
+
+    function showNotice() {
+      const box = document.getElementById("noticeSlider");
+      const n = notices[noticeIndex];
+
+      box.style.opacity = "0.3";
+
+      setTimeout(() => {
+        box.innerHTML = `
+          <div class="notice-inner">
+            <h3>${n.title}</h3>
+            <p>${n.content}</p>
+            <span class="notice-tag">${n.type}</span>
+          </div>
+        `;
+        box.style.opacity = "1";
+        noticeIndex = (noticeIndex + 1) % notices.length;
+      }, 250);
+    }
+
+    let galleryItems = [];
+    let galleryIndex = 0;
+
+    fetch(`${API_BASE}/gallery`)
+      .then(res => res.json())
+      .then(data => {
+        galleryItems = data;
+        if (galleryItems.length > 0) {
+          showGallery();
+          setInterval(showGallery, 3500);
+        } else {
+          document.getElementById("galleryTitle").innerText = "No images uploaded yet.";
+        }
+      })
+      .catch(() => {
+        document.getElementById("galleryTitle").innerText = "Gallery unavailable.";
+      });
+
+    function showGallery() {
+      const img = document.getElementById("galleryImage");
+      const title = document.getElementById("galleryTitle");
+      const item = galleryItems[galleryIndex];
+
+      img.style.opacity = "0";
+      title.style.opacity = "0";
+
+      setTimeout(() => {
+        img.src = `${API_BASE}/uploads/${item.image}`;
+        title.innerText = `${item.title} • ${item.category}`;
+        img.style.opacity = "1";
+        title.style.opacity = "1";
+        galleryIndex = (galleryIndex + 1) % galleryItems.length;
+      }, 250);
+    }
+  </script>
+</body>
+</html>

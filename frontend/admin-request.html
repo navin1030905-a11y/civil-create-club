@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Request Admin Access - Civil Crete Club</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Cinzel:wght@500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="inner-page">
+
+  <section class="admin-login-wrap">
+    <div class="admin-login-left">
+      <img src="images/logo.png" alt="Civil Club Logo" class="admin-login-logo">
+      <span class="admin-login-badge">Approval Required</span>
+      <h1>Request Club Admin Access</h1>
+      <p>
+        Submit your details for approval. Your request will be reviewed by an
+        authorized administrator before access is granted.
+      </p>
+    </div>
+
+    <div class="admin-login-card">
+      <h2>Request Access</h2>
+      <p class="admin-login-sub">Fill the form carefully</p>
+
+      <input id="reqUser" type="text" placeholder="Choose Username">
+      <input id="reqPass" type="password" placeholder="Choose Password">
+      <textarea id="reqReason" placeholder="Why do you need admin access?"></textarea>
+
+      <button onclick="requestAccess()">Submit Request</button>
+
+      <div class="admin-login-links">
+        <a href="admin-login.html">Back to Admin Login</a>
+        <a href="index.html">Back to Home</a>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    <!-- const API_BASE = "http://localhost:3000"; -->
+    const API_BASE = "https://civil-create-club.onrender.com";
+
+    async function requestAccess() {
+      const username = document.getElementById("reqUser").value.trim();
+      const password = document.getElementById("reqPass").value.trim();
+      const reason = document.getElementById("reqReason").value.trim();
+
+      if (!username || !password) {
+        alert("Username and password required");
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/admin-request`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password, reason })
+        });
+
+        const text = await res.text();
+        let data;
+
+        try {
+          data = JSON.parse(text);
+        } catch {
+          alert("Server error");
+          return;
+        }
+
+        alert(data.message || "Request submitted");
+      } catch (err) {
+        console.error(err);
+        alert("Server error");
+      }
+    }
+  </script>
+
+</body>
+</html>
