@@ -86,7 +86,7 @@
 
       <section class="admin-card" id="galleryManageSection">
         <h2>Manage Gallery</h2>
-        <p class="panel-desc">Head admin only can delete gallery items.</p>
+        <p class="panel-desc"> Admin only can delete gallery items.</p>
         <div id="galleryListBox">
           <div class="empty-request-box">Loading gallery...</div>
         </div>
@@ -94,7 +94,7 @@
 
       <section class="admin-card" id="notesSection">
         <h2>Add Note</h2>
-        <p class="panel-desc">Normal admin and head admin both can add notes.</p>
+        <p class="panel-desc">Admin and head admin both can add notes.</p>
         <input id="noteTitle" placeholder="Note Title">
         <textarea id="noteDescription" placeholder="Note Description"></textarea>
         <input id="noteSubject" placeholder="Subject Name">
@@ -104,7 +104,7 @@
 
       <section class="admin-card" id="notesManageSection">
         <h2>Manage Notes</h2>
-        <p class="panel-desc">Head admin only can delete notes.</p>
+        <p class="panel-desc">Admin only can delete notes.</p>
         <div id="notesListBox">
           <div class="empty-request-box">Loading notes...</div>
         </div>
@@ -112,7 +112,7 @@
 
       <section class="admin-card" id="requestSection">
         <h2>Pending Admin Requests</h2>
-        <p class="panel-desc">Head admin only can approve or reject requests.</p>
+        <p class="panel-desc"> Admin only can approve or reject requests.</p>
         <div id="requestsList">
           <div class="empty-request-box">Loading requests...</div>
         </div>
@@ -125,7 +125,7 @@
         <input id="newAdminUsername" placeholder="New Admin Username">
         <input id="newAdminPassword" placeholder="New Admin Password">
         <select id="newAdminRole">
-          <option value="admin">Normal Admin</option>
+          <option value="admin"> Admin</option>
           <option value="head">Head Admin</option>
         </select>
         <button onclick="createAdmin()">Create Admin</button>
@@ -158,7 +158,7 @@
     }
 
     document.getElementById("roleBadgeBox").innerHTML =
-      `<span class="role-badge role-${adminRole || "admin"}">${adminRole === "head" ? "Head Admin" : "Normal Admin"}: ${adminUsername || ""}</span>`;
+      `<span class="role-badge role-${adminRole || "admin"}">${adminRole === "head" ? "Head Admin" : "Admin"}: ${adminUsername || ""}</span>`;
 
     function applyRoleUI() {
       if (adminRole !== "head") {
