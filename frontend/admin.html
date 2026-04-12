@@ -21,13 +21,15 @@
 
       <div class="admin-nav">
         <a href="#homeEdit">Home Content</a>
-        <a href="#noticeSection">Notices</a>
+        <a href="#noticeSection">Add Notice</a>
         <a href="#noticeManageSection">Manage Notices</a>
         <a href="#gallerySection">Gallery Upload</a>
         <a href="#galleryManageSection">Manage Gallery</a>
-        <a href="#notesSection">Notes</a>
+        <a href="#notesSection">Add Notes</a>
         <a href="#notesManageSection">Manage Notes</a>
-        <a href="#requestSection">Access Requests</a>
+        <a href="#requestSection">Admin Requests</a>
+        <a href="#adminManageSection">Admin List</a>
+        <a href="#activitySection">Activity Logs</a>
         <a href="index.html">Back to Website</a>
       </div>
     </aside>
@@ -37,13 +39,14 @@
         <div>
           <span class="dashboard-tag">Control Center</span>
           <h1>Club Administration Panel</h1>
+          <p id="roleBadgeBox" style="margin-top:10px;"></p>
         </div>
         <button class="logout-btn" onclick="logout()">Logout</button>
       </div>
 
       <section class="admin-card" id="homeEdit">
         <h2>Edit Home Page</h2>
-        <p class="panel-desc">Update the main headline and subtitle shown on the home page hero section.</p>
+        <p class="panel-desc">Head admin only.</p>
         <input id="heroTitle" placeholder="Hero Title">
         <input id="heroSubtitle" placeholder="Hero Subtitle">
         <button onclick="updateHomePage()">Update Home Page</button>
@@ -51,7 +54,7 @@
 
       <section class="admin-card" id="noticeSection">
         <h2>Add Notice</h2>
-        <p class="panel-desc">Create a new notice for students and club members.</p>
+        <p class="panel-desc">Normal admin and head admin both can add notices.</p>
         <input id="noticeTitle" placeholder="Notice Title">
         <textarea id="noticeContent" placeholder="Notice Content"></textarea>
         <select id="noticeType">
@@ -63,7 +66,7 @@
 
       <section class="admin-card" id="noticeManageSection">
         <h2>Manage Notices</h2>
-        <p class="panel-desc">Delete old or incorrect notices.</p>
+        <p class="panel-desc">Head admin only can delete notices.</p>
         <div id="noticeListBox">
           <div class="empty-request-box">Loading notices...</div>
         </div>
@@ -71,7 +74,7 @@
 
       <section class="admin-card" id="gallerySection">
         <h2>Upload Gallery Item</h2>
-        <p class="panel-desc">Upload past event images or achievement highlights.</p>
+        <p class="panel-desc">Normal admin and head admin both can upload gallery items.</p>
         <input id="galleryTitleInput" placeholder="Image Title">
         <select id="galleryCategory">
           <option value="past_event">Past Event</option>
@@ -83,7 +86,7 @@
 
       <section class="admin-card" id="galleryManageSection">
         <h2>Manage Gallery</h2>
-        <p class="panel-desc">Delete uploaded gallery items.</p>
+        <p class="panel-desc">Head admin only can delete gallery items.</p>
         <div id="galleryListBox">
           <div class="empty-request-box">Loading gallery...</div>
         </div>
@@ -91,7 +94,7 @@
 
       <section class="admin-card" id="notesSection">
         <h2>Add Note</h2>
-        <p class="panel-desc">Add subject-wise notes and optional PDF links for students.</p>
+        <p class="panel-desc">Normal admin and head admin both can add notes.</p>
         <input id="noteTitle" placeholder="Note Title">
         <textarea id="noteDescription" placeholder="Note Description"></textarea>
         <input id="noteSubject" placeholder="Subject Name">
@@ -101,7 +104,7 @@
 
       <section class="admin-card" id="notesManageSection">
         <h2>Manage Notes</h2>
-        <p class="panel-desc">Delete notes added earlier.</p>
+        <p class="panel-desc">Head admin only can delete notes.</p>
         <div id="notesListBox">
           <div class="empty-request-box">Loading notes...</div>
         </div>
@@ -109,9 +112,34 @@
 
       <section class="admin-card" id="requestSection">
         <h2>Pending Admin Requests</h2>
-        <p class="panel-desc">Approve or reject access requests from users.</p>
+        <p class="panel-desc">Head admin only can approve or reject requests.</p>
         <div id="requestsList">
           <div class="empty-request-box">Loading requests...</div>
+        </div>
+      </section>
+
+      <section class="admin-card" id="adminManageSection">
+        <h2>Admin List & Role Management</h2>
+        <p class="panel-desc">Head admin only.</p>
+
+        <input id="newAdminUsername" placeholder="New Admin Username">
+        <input id="newAdminPassword" placeholder="New Admin Password">
+        <select id="newAdminRole">
+          <option value="admin">Normal Admin</option>
+          <option value="head">Head Admin</option>
+        </select>
+        <button onclick="createAdmin()">Create Admin</button>
+
+        <div id="adminListBox" style="margin-top:20px;">
+          <div class="empty-request-box">Loading admin list...</div>
+        </div>
+      </section>
+
+      <section class="admin-card" id="activitySection">
+        <h2>Activity Logs</h2>
+        <p class="panel-desc">Head admin only. Shows who changed what.</p>
+        <div id="activityLogsBox">
+          <div class="empty-request-box">Loading activity logs...</div>
         </div>
       </section>
     </main>
@@ -121,10 +149,24 @@
     const API_BASE = "https://civil-create-club.onrender.com";
 
     const token = localStorage.getItem("adminToken");
+    const adminUsername = localStorage.getItem("adminUsername");
+    const adminRole = localStorage.getItem("adminRole");
 
     if (!token) {
       alert("Admin login required");
       window.location.href = "admin-login.html";
+    }
+
+    document.getElementById("roleBadgeBox").innerHTML =
+      `<span class="role-badge role-${adminRole || "admin"}">${adminRole === "head" ? "Head Admin" : "Normal Admin"}: ${adminUsername || ""}</span>`;
+
+    function applyRoleUI() {
+      if (adminRole !== "head") {
+        document.getElementById("homeEdit").style.display = "none";
+        document.getElementById("requestSection").style.display = "none";
+        document.getElementById("adminManageSection").style.display = "none";
+        document.getElementById("activitySection").style.display = "none";
+      }
     }
 
     async function checkAdminAuth() {
@@ -141,6 +183,7 @@
         alert("Unauthorized");
         localStorage.removeItem("adminToken");
         localStorage.removeItem("adminUsername");
+        localStorage.removeItem("adminRole");
         window.location.href = "admin-login.html";
       }
     }
@@ -306,7 +349,7 @@
               <p><strong>Type:</strong> ${item.type}</p>
             </div>
             <div class="request-actions">
-              <button class="reject-btn" onclick="deleteNotice(${item.id})">Delete</button>
+              ${adminRole === "head" ? `<button class="reject-btn" onclick="deleteNotice(${item.id})">Delete</button>` : `<span class="limited-badge">View Only</span>`}
             </div>
           </div>
         `).join("");
@@ -335,7 +378,7 @@
               <p>${item.image}</p>
             </div>
             <div class="request-actions">
-              <button class="reject-btn" onclick="deleteGallery(${item.id})">Delete</button>
+              ${adminRole === "head" ? `<button class="reject-btn" onclick="deleteGallery(${item.id})">Delete</button>` : `<span class="limited-badge">View Only</span>`}
             </div>
           </div>
         `).join("");
@@ -365,7 +408,7 @@
               <p><strong>PDF:</strong> ${item.pdf_link || "Not added"}</p>
             </div>
             <div class="request-actions">
-              <button class="reject-btn" onclick="deleteNote(${item.id})">Delete</button>
+              ${adminRole === "head" ? `<button class="reject-btn" onclick="deleteNote(${item.id})">Delete</button>` : `<span class="limited-badge">View Only</span>`}
             </div>
           </div>
         `).join("");
@@ -387,7 +430,7 @@
 
         const data = await res.json();
         alert(data.message || "Deleted");
-        loadNotices();
+        if (res.ok) loadNotices();
       } catch (error) {
         alert("Server error");
       }
@@ -406,7 +449,7 @@
 
         const data = await res.json();
         alert(data.message || "Deleted");
-        loadGalleryItems();
+        if (res.ok) loadGalleryItems();
       } catch (error) {
         alert("Server error");
       }
@@ -425,7 +468,7 @@
 
         const data = await res.json();
         alert(data.message || "Deleted");
-        loadNotes();
+        if (res.ok) loadNotes();
       } catch (error) {
         alert("Server error");
       }
@@ -433,6 +476,8 @@
 
     async function loadRequests() {
       const list = document.getElementById("requestsList");
+
+      if (adminRole !== "head") return;
 
       try {
         const res = await fetch(`${API_BASE}/admin-requests`, {
@@ -482,6 +527,7 @@
         const data = await res.json();
         alert(data.message || "Approved");
         loadRequests();
+        loadAdminList();
       } catch (error) {
         alert("Server error");
       }
@@ -504,18 +550,172 @@
       }
     }
 
+    async function createAdmin() {
+      const username = document.getElementById("newAdminUsername").value.trim();
+      const password = document.getElementById("newAdminPassword").value.trim();
+      const role = document.getElementById("newAdminRole").value;
+
+      if (!username || !password || !role) {
+        alert("Please fill all admin fields");
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/create-admin`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            authorization: "Bearer " + token
+          },
+          body: JSON.stringify({ username, password, role })
+        });
+
+        const data = await res.json();
+        alert(data.message || "Admin created");
+
+        if (res.ok) {
+          document.getElementById("newAdminUsername").value = "";
+          document.getElementById("newAdminPassword").value = "";
+          document.getElementById("newAdminRole").value = "admin";
+          loadAdminList();
+          loadActivityLogs();
+        }
+      } catch (error) {
+        alert("Server error");
+      }
+    }
+
+    async function loadAdminList() {
+      const box = document.getElementById("adminListBox");
+
+      if (adminRole !== "head") return;
+
+      try {
+        const res = await fetch(`${API_BASE}/admins`, {
+          headers: {
+            authorization: "Bearer " + token
+          }
+        });
+
+        const data = await res.json();
+
+        if (!Array.isArray(data) || data.length === 0) {
+          box.innerHTML = `<div class="empty-request-box">No admins found.</div>`;
+          return;
+        }
+
+        box.innerHTML = data.map(item => `
+          <div class="request-card premium-request-card">
+            <div class="request-meta">
+              <h4>${item.username}</h4>
+              <p><strong>Role:</strong> ${item.role}</p>
+            </div>
+            <div class="request-actions">
+              ${item.username !== adminUsername ? `
+                <select onchange="changeAdminRole(${item.id}, this.value)">
+                  <option value="admin" ${item.role === "admin" ? "selected" : ""}>Normal Admin</option>
+                  <option value="head" ${item.role === "head" ? "selected" : ""}>Head Admin</option>
+                </select>
+                <button class="reject-btn" onclick="deleteAdmin(${item.id})">Delete</button>
+              ` : `<span class="limited-badge">Current User</span>`}
+            </div>
+          </div>
+        `).join("");
+      } catch (error) {
+        box.innerHTML = `<div class="empty-request-box">Failed to load admin list.</div>`;
+      }
+    }
+
+    async function changeAdminRole(id, role) {
+      try {
+        const res = await fetch(`${API_BASE}/update-admin-role/${id}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            authorization: "Bearer " + token
+          },
+          body: JSON.stringify({ role })
+        });
+
+        const data = await res.json();
+        alert(data.message || "Role updated");
+        loadAdminList();
+        loadActivityLogs();
+      } catch (error) {
+        alert("Server error");
+      }
+    }
+
+    async function deleteAdmin(id) {
+      if (!confirm("Delete this admin?")) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/delete-admin/${id}`, {
+          method: "DELETE",
+          headers: {
+            authorization: "Bearer " + token
+          }
+        });
+
+        const data = await res.json();
+        alert(data.message || "Admin deleted");
+        loadAdminList();
+        loadActivityLogs();
+      } catch (error) {
+        alert("Server error");
+      }
+    }
+
+    async function loadActivityLogs() {
+      const box = document.getElementById("activityLogsBox");
+
+      if (adminRole !== "head") return;
+
+      try {
+        const res = await fetch(`${API_BASE}/activity-logs`, {
+          headers: {
+            authorization: "Bearer " + token
+          }
+        });
+
+        const data = await res.json();
+
+        if (!Array.isArray(data) || data.length === 0) {
+          box.innerHTML = `<div class="empty-request-box">No activity logs found.</div>`;
+          return;
+        }
+
+        box.innerHTML = data.map(log => `
+          <div class="request-card premium-request-card">
+            <div class="request-meta">
+              <h4>${log.admin_username} <span class="role-badge role-${log.admin_role}">${log.admin_role}</span></h4>
+              <p><strong>Action:</strong> ${log.action_type}</p>
+              <p>${log.action_details || ""}</p>
+              <p><strong>Time:</strong> ${new Date(log.created_at).toLocaleString()}</p>
+            </div>
+          </div>
+        `).join("");
+      } catch (error) {
+        box.innerHTML = `<div class="empty-request-box">Failed to load activity logs.</div>`;
+      }
+    }
+
     function logout() {
       localStorage.removeItem("adminToken");
       localStorage.removeItem("adminUsername");
+      localStorage.removeItem("adminRole");
       window.location.href = "index.html";
     }
 
+    applyRoleUI();
     checkAdminAuth();
     loadSiteContent();
     loadRequests();
     loadNotices();
     loadGalleryItems();
     loadNotes();
+    loadAdminList();
+    loadActivityLogs();
   </script>
 
 </body>

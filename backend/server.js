@@ -9,7 +9,7 @@ const fs = require("fs");
 
 const app = express();
 
-app.use(cors({ origin: "*" }));
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -24,19 +24,36 @@ app.use("/uploads", express.static(uploadsPath));
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || "mysecretkey";
 
-if (!process.env.MYSQL_PUBLIC_URL) {
-  console.error("❌ MYSQL_PUBLIC_URL missing");
-}
-
+/* ---------------- DB CONNECTION ---------------- */
 const db = mysql.createConnection(process.env.MYSQL_PUBLIC_URL);
 
 db.connect((err) => {
   if (err) {
-    console.error("❌ MySQL connection error:", err);
+    console.error("MySQL connection error:", err);
   } else {
-    console.log("✅ MySQL Connected");
+    console.log("MySQL Connected");
   }
 });
+
+/* ---------------- HELPERS ---------------- */
+function logActivity(admin, actionType, actionDetails) {
+  if (!admin || !admin.username) return;
+
+  db.query(
+    "INSERT INTO activity_logs (admin_username, admin_role, action_type, action_details) VALUES (?, ?, ?, ?)",
+    [
+      admin.username,
+      admin.role || "admin",
+      actionType,
+      actionDetails || ""
+    ],
+    (err) => {
+      if (err) {
+        console.error("Activity log error:", err);
+      }
+    }
+  );
+}
 
 /* ---------------- MULTER ---------------- */
 const storage = multer.diskStorage({
@@ -48,7 +65,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-/* ---------------- JWT ---------------- */
+/* ---------------- AUTH ---------------- */
 function verifyAdmin(req, res, next) {
   const authHeader = req.headers.authorization;
 
@@ -67,22 +84,28 @@ function verifyAdmin(req, res, next) {
     const decoded = jwt.verify(token, JWT_SECRET);
     req.admin = decoded;
     next();
-  } catch (error) {
+  } catch {
     return res.status(401).json({ message: "Invalid token" });
   }
 }
 
+function requireHead(req, res, next) {
+  if (!req.admin || req.admin.role !== "head") {
+    return res.status(403).json({ message: "Access denied: head admin only" });
+  }
+  next();
+}
+
 /* ---------------- ROOT ---------------- */
 app.get("/", (req, res) => {
-  res.send("Civil Club back-end running 🚀");
+  res.send("Civil Club back-end running");
 });
 
 /* ---------------- DEBUG ---------------- */
 app.get("/debug-admins", (req, res) => {
-  db.query("SELECT id, username FROM admins", (err, results) => {
+  db.query("SELECT id, username, role FROM admins ORDER BY id ASC", (err, results) => {
     if (err) {
-      console.error("Debug admins error:", err);
-      return res.status(500).json({ message: "Server error", error: err.message });
+      return res.status(500).json({ message: "DB error", error: err.message });
     }
     return res.json(results);
   });
@@ -91,8 +114,6 @@ app.get("/debug-admins", (req, res) => {
 /* ---------------- ADMIN LOGIN ---------------- */
 app.post("/admin-login", (req, res) => {
   const { username, password } = req.body;
-
-  console.log("Login username received:", username);
 
   if (!username || !password) {
     return res.status(400).json({ message: "Username and password required" });
@@ -106,8 +127,6 @@ app.post("/admin-login", (req, res) => {
         console.error("Admin login DB error:", err);
         return res.status(500).json({ message: "Server error" });
       }
-
-      console.log("Admin query results:", results);
 
       if (results.length === 0) {
         return res.status(404).json({ message: "Admin not found" });
@@ -126,16 +145,23 @@ app.post("/admin-login", (req, res) => {
           {
             id: admin.id,
             username: admin.username,
-            role: "admin"
+            role: admin.role || "admin"
           },
           JWT_SECRET,
           { expiresIn: "1d" }
         );
 
+        logActivity(
+          { username: admin.username, role: admin.role || "admin" },
+          "LOGIN",
+          "Admin logged in"
+        );
+
         return res.json({
           message: "Login success",
           token,
-          username: admin.username
+          username: admin.username,
+          role: admin.role || "admin"
         });
       } catch (compareErr) {
         console.error("Password compare error:", compareErr);
@@ -186,7 +212,7 @@ app.post("/admin-request", async (req, res) => {
 });
 
 /* ---------------- ADMIN REQUESTS ---------------- */
-app.get("/admin-requests", verifyAdmin, (req, res) => {
+app.get("/admin-requests", verifyAdmin, requireHead, (req, res) => {
   db.query("SELECT * FROM admin_requests ORDER BY id DESC", (err, results) => {
     if (err) {
       console.error("Admin requests fetch error:", err);
@@ -197,7 +223,7 @@ app.get("/admin-requests", verifyAdmin, (req, res) => {
   });
 });
 
-app.post("/approve-admin/:id", verifyAdmin, (req, res) => {
+app.post("/approve-admin/:id", verifyAdmin, requireHead, (req, res) => {
   const requestId = req.params.id;
 
   db.query(
@@ -216,8 +242,8 @@ app.post("/approve-admin/:id", verifyAdmin, (req, res) => {
       const request = results[0];
 
       db.query(
-        "INSERT INTO admins (username, password) VALUES (?, ?)",
-        [request.username, request.password],
+        "INSERT INTO admins (username, password, role) VALUES (?, ?, ?)",
+        [request.username, request.password, "admin"],
         (insertErr) => {
           if (insertErr) {
             console.error("Approve insert error:", insertErr);
@@ -236,6 +262,7 @@ app.post("/approve-admin/:id", verifyAdmin, (req, res) => {
                 return res.status(500).json({ message: "Admin added but request delete failed" });
               }
 
+              logActivity(req.admin, "APPROVE_ADMIN_REQUEST", `Approved request for ${request.username}`);
               return res.json({ message: "Admin approved successfully" });
             }
           );
@@ -245,7 +272,7 @@ app.post("/approve-admin/:id", verifyAdmin, (req, res) => {
   );
 });
 
-app.post("/reject-admin/:id", verifyAdmin, (req, res) => {
+app.post("/reject-admin/:id", verifyAdmin, requireHead, (req, res) => {
   const requestId = req.params.id;
 
   db.query(
@@ -257,9 +284,123 @@ app.post("/reject-admin/:id", verifyAdmin, (req, res) => {
         return res.status(500).json({ message: "Server error" });
       }
 
+      logActivity(req.admin, "REJECT_ADMIN_REQUEST", `Rejected request id ${requestId}`);
       return res.json({ message: "Request rejected successfully" });
     }
   );
+});
+
+/* ---------------- ADMIN LIST ---------------- */
+app.get("/admins", verifyAdmin, requireHead, (req, res) => {
+  db.query("SELECT id, username, role FROM admins ORDER BY id ASC", (err, results) => {
+    if (err) {
+      console.error("Admins fetch error:", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+
+    return res.json(results);
+  });
+});
+
+app.post("/create-admin", verifyAdmin, requireHead, async (req, res) => {
+  const { username, password, role } = req.body;
+
+  if (!username || !password || !role) {
+    return res.status(400).json({ message: "Username, password and role required" });
+  }
+
+  if (!["head", "admin"].includes(role)) {
+    return res.status(400).json({ message: "Invalid role" });
+  }
+
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    db.query(
+      "INSERT INTO admins (username, password, role) VALUES (?, ?, ?)",
+      [username, hashedPassword, role],
+      (err) => {
+        if (err) {
+          console.error("Create admin error:", err);
+          if (err.code === "ER_DUP_ENTRY") {
+            return res.status(400).json({ message: "Username already exists" });
+          }
+          return res.status(500).json({ message: "Server error" });
+        }
+
+        logActivity(req.admin, "CREATE_ADMIN", `Created ${role} admin ${username}`);
+        return res.json({ message: "Admin created successfully" });
+      }
+    );
+  } catch (error) {
+    console.error("Create admin hash error:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+});
+
+app.post("/update-admin-role/:id", verifyAdmin, requireHead, (req, res) => {
+  const { role } = req.body;
+  const adminId = req.params.id;
+
+  if (!["head", "admin"].includes(role)) {
+    return res.status(400).json({ message: "Invalid role" });
+  }
+
+  if (String(req.admin.id) === String(adminId)) {
+    return res.status(400).json({ message: "You cannot change your own role" });
+  }
+
+  db.query(
+    "UPDATE admins SET role = ? WHERE id = ?",
+    [role, adminId],
+    (err, result) => {
+      if (err) {
+        console.error("Update admin role error:", err);
+        return res.status(500).json({ message: "Server error" });
+      }
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ message: "Admin not found" });
+      }
+
+      logActivity(req.admin, "UPDATE_ADMIN_ROLE", `Updated admin id ${adminId} role to ${role}`);
+      return res.json({ message: "Admin role updated successfully" });
+    }
+  );
+});
+
+app.delete("/delete-admin/:id", verifyAdmin, requireHead, (req, res) => {
+  const adminId = req.params.id;
+
+  if (String(req.admin.id) === String(adminId)) {
+    return res.status(400).json({ message: "You cannot delete yourself" });
+  }
+
+  db.query("DELETE FROM admins WHERE id = ?", [adminId], (err, result) => {
+    if (err) {
+      console.error("Delete admin error:", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Admin not found" });
+    }
+
+    logActivity(req.admin, "DELETE_ADMIN", `Deleted admin id ${adminId}`);
+    return res.json({ message: "Admin deleted successfully" });
+  });
+});
+
+/* ---------------- ACTIVITY LOGS ---------------- */
+app.get("/activity-logs", verifyAdmin, requireHead, (req, res) => {
+  db.query("SELECT * FROM activity_logs ORDER BY id DESC LIMIT 100", (err, results) => {
+    if (err) {
+      console.error("Activity logs fetch error:", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+
+    return res.json(results);
+  });
 });
 
 /* ---------------- SITE CONTENT ---------------- */
@@ -281,7 +422,7 @@ app.get("/site-content", (req, res) => {
   });
 });
 
-app.post("/update-site-content", verifyAdmin, (req, res) => {
+app.post("/update-site-content", verifyAdmin, requireHead, (req, res) => {
   const { hero_title, hero_subtitle } = req.body;
 
   db.query("SELECT * FROM site_content LIMIT 1", (err, results) => {
@@ -299,6 +440,8 @@ app.post("/update-site-content", verifyAdmin, (req, res) => {
             console.error("Site content insert error:", insertErr);
             return res.status(500).json({ message: "Server error" });
           }
+
+          logActivity(req.admin, "UPDATE_HOME_CONTENT", "Inserted home page content");
           return res.json({ message: "Home page updated successfully" });
         }
       );
@@ -311,6 +454,8 @@ app.post("/update-site-content", verifyAdmin, (req, res) => {
             console.error("Site content update error:", updateErr);
             return res.status(500).json({ message: "Server error" });
           }
+
+          logActivity(req.admin, "UPDATE_HOME_CONTENT", "Updated home page content");
           return res.json({ message: "Home page updated successfully" });
         }
       );
@@ -325,6 +470,7 @@ app.get("/notices", (req, res) => {
       console.error("Notices fetch error:", err);
       return res.status(500).json({ message: "Server error" });
     }
+
     return res.json(results);
   });
 });
@@ -344,9 +490,29 @@ app.post("/add-notice", verifyAdmin, (req, res) => {
         console.error("Add notice error:", err);
         return res.status(500).json({ message: "Server error" });
       }
+
+      logActivity(req.admin, "ADD_NOTICE", `Added notice: ${title}`);
       return res.json({ message: "Notice added successfully" });
     }
   );
+});
+
+app.delete("/delete-notice/:id", verifyAdmin, requireHead, (req, res) => {
+  const id = req.params.id;
+
+  db.query("DELETE FROM notices WHERE id = ?", [id], (err, result) => {
+    if (err) {
+      console.error("Delete notice error:", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Notice not found" });
+    }
+
+    logActivity(req.admin, "DELETE_NOTICE", `Deleted notice id ${id}`);
+    return res.json({ message: "Notice deleted successfully" });
+  });
 });
 
 /* ---------------- GALLERY ---------------- */
@@ -356,6 +522,7 @@ app.get("/gallery", (req, res) => {
       console.error("Gallery fetch error:", err);
       return res.status(500).json({ message: "Server error" });
     }
+
     return res.json(results);
   });
 });
@@ -375,9 +542,47 @@ app.post("/add-gallery", verifyAdmin, upload.single("image"), (req, res) => {
         console.error("Add gallery error:", err);
         return res.status(500).json({ message: "Server error" });
       }
+
+      logActivity(req.admin, "ADD_GALLERY", `Uploaded gallery item: ${req.file.filename}`);
       return res.json({ message: "Gallery image uploaded successfully" });
     }
   );
+});
+
+app.delete("/delete-gallery/:id", verifyAdmin, requireHead, (req, res) => {
+  const id = req.params.id;
+
+  db.query("SELECT * FROM gallery WHERE id = ? LIMIT 1", [id], (err, results) => {
+    if (err) {
+      console.error("Read gallery delete error:", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+
+    if (results.length === 0) {
+      return res.status(404).json({ message: "Gallery item not found" });
+    }
+
+    const item = results[0];
+    const imagePath = path.join(uploadsPath, item.image);
+
+    db.query("DELETE FROM gallery WHERE id = ?", [id], (deleteErr) => {
+      if (deleteErr) {
+        console.error("Delete gallery DB error:", deleteErr);
+        return res.status(500).json({ message: "Server error" });
+      }
+
+      if (fs.existsSync(imagePath)) {
+        fs.unlink(imagePath, (fileErr) => {
+          if (fileErr) {
+            console.error("Delete gallery file error:", fileErr);
+          }
+        });
+      }
+
+      logActivity(req.admin, "DELETE_GALLERY", `Deleted gallery item id ${id}`);
+      return res.json({ message: "Gallery item deleted successfully" });
+    });
+  });
 });
 
 /* ---------------- NOTES ---------------- */
@@ -387,6 +592,7 @@ app.get("/notes", (req, res) => {
       console.error("Notes fetch error:", err);
       return res.status(500).json({ message: "Server error" });
     }
+
     return res.json(results);
   });
 });
@@ -407,66 +613,13 @@ app.post("/add-note", verifyAdmin, (req, res) => {
         return res.status(500).json({ message: "Server error" });
       }
 
+      logActivity(req.admin, "ADD_NOTE", `Added note: ${title}`);
       return res.json({ message: "Note added successfully" });
     }
   );
 });
-/* ---------------- DELETE NOTICE ---------------- */
-app.delete("/delete-notice/:id", verifyAdmin, (req, res) => {
-  const id = req.params.id;
 
-  db.query("DELETE FROM notices WHERE id = ?", [id], (err, result) => {
-    if (err) {
-      console.error("Delete notice error:", err);
-      return res.status(500).json({ message: "Server error" });
-    }
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: "Notice not found" });
-    }
-
-    return res.json({ message: "Notice deleted successfully" });
-  });
-});
-
-/* ---------------- DELETE GALLERY ---------------- */
-app.delete("/delete-gallery/:id", verifyAdmin, (req, res) => {
-  const id = req.params.id;
-
-  db.query("SELECT * FROM gallery WHERE id = ? LIMIT 1", [id], (err, results) => {
-    if (err) {
-      console.error("Read gallery delete error:", err);
-      return res.status(500).json({ message: "Server error" });
-    }
-
-    if (results.length === 0) {
-      return res.status(404).json({ message: "Gallery item not found" });
-    }
-
-    const item = results[0];
-    const imagePath = path.join(uploadsPath, item.image);
-
-    db.query("DELETE FROM gallery WHERE id = ?", [id], (deleteErr, result) => {
-      if (deleteErr) {
-        console.error("Delete gallery DB error:", deleteErr);
-        return res.status(500).json({ message: "Server error" });
-      }
-
-      if (fs.existsSync(imagePath)) {
-        fs.unlink(imagePath, (fileErr) => {
-          if (fileErr) {
-            console.error("Delete gallery file error:", fileErr);
-          }
-        });
-      }
-
-      return res.json({ message: "Gallery item deleted successfully" });
-    });
-  });
-});
-
-/* ---------------- DELETE NOTE ---------------- */
-app.delete("/delete-note/:id", verifyAdmin, (req, res) => {
+app.delete("/delete-note/:id", verifyAdmin, requireHead, (req, res) => {
   const id = req.params.id;
 
   db.query("DELETE FROM notes WHERE id = ?", [id], (err, result) => {
@@ -479,10 +632,12 @@ app.delete("/delete-note/:id", verifyAdmin, (req, res) => {
       return res.status(404).json({ message: "Note not found" });
     }
 
+    logActivity(req.admin, "DELETE_NOTE", `Deleted note id ${id}`);
     return res.json({ message: "Note deleted successfully" });
   });
 });
+
 /* ---------------- START ---------------- */
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });

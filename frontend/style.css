@@ -1477,3 +1477,30 @@ a {
     width: 100%;
   }
 }
+.role-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: white;
+  margin-left: 8px;
+}
+
+.role-head {
+  background: linear-gradient(135deg, #dc2626, #f97316);
+}
+
+.role-admin {
+  background: linear-gradient(135deg, #2563eb, #06b6d4);
+}
+
+.limited-badge {
+  display: inline-block;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: #e2e8f0;
+  color: #334155;
+}
