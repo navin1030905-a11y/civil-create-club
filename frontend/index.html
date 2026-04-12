@@ -20,20 +20,9 @@
         <div class="brand-text-group">
           <span class="brand-text">Civil Crete Club</span>
           <span class="college-name">Bhagalpur College of Engineering</span>
-          <!-- <div class="brand-subnav">
-            <a href="index.html" class="active">Home</a>
-            <a href="notes.html">Notes</a>
-            <a href="events.html">Events</a>
-            <a href="gallery.html">Achievements</a>
-            <a href="#aboutSection">About</a>
-          </div> -->
         </div>
       </div>
     </div>
-
-    <!-- <nav class="top-nav desktop-nav">
-      
-    </nav> -->
 
     <div class="top-right">
       <div id="currentUserBox"></div>
@@ -45,10 +34,10 @@
     <div id="menuUserArea" class="menu-user"></div>
 
     <div class="menu-section-title">Navigation</div>
-    <a href="index.html">Home</a>
-    <a href="notes.html">Notes</a>
-    <a href="events.html">Events</a>
-    <a href="gallery.html">Achievements</a>
+    <a href="index.html" onclick="closeMenu()">Home</a>
+    <a href="notes.html" onclick="closeMenu()">Notes</a>
+    <a href="events.html" onclick="closeMenu()">Events</a>
+    <a href="gallery.html" onclick="closeMenu()">Achievements</a>
     <a href="#facultySection" onclick="closeMenu()">Faculty</a>
     <a href="#teamSection" onclick="closeMenu()">Team</a>
     <a href="#aboutSection" onclick="closeMenu()">About</a>
@@ -113,26 +102,9 @@
       <p>Guiding the club with academic support, mentoring, and departmental leadership.</p>
     </div>
 
-    <div class="faculty-grid">
-      <div class="faculty-card">
-        <div class="faculty-avatar">FC</div>
-        <h3>Faculty Coordinator</h3>
-        <p class="faculty-role">Civil Engineering Department</p>
-        <p class="faculty-desc">Provides technical guidance, academic vision, and leadership support for club activities.</p>
-      </div>
-
-      <div class="faculty-card">
-        <div class="faculty-avatar">MC</div>
-        <h3>Mentor Faculty</h3>
-        <p class="faculty-role">Academic Advisor</p>
-        <p class="faculty-desc">Supports planning, student engagement, and coordination in departmental events.</p>
-      </div>
-
-      <div class="faculty-card">
-        <div class="faculty-avatar">HC</div>
-        <h3>Head Support</h3>
-        <p class="faculty-role">Departmental Leadership</p>
-        <p class="faculty-desc">Encourages institutional growth, innovation culture, and professional discipline.</p>
+    <div class="faculty-grid" id="facultyBox">
+      <div class="empty-state">
+        <div class="loader"></div>
       </div>
     </div>
   </section>
@@ -144,29 +116,9 @@
       <p>Student leaders and coordinators who drive the identity and energy of the club.</p>
     </div>
 
-    <div class="team-grid">
-      <div class="team-card">
-        <div class="team-avatar">P</div>
-        <h3>President</h3>
-        <p>Leads the club vision, planning, and major initiatives.</p>
-      </div>
-
-      <div class="team-card">
-        <div class="team-avatar">V</div>
-        <h3>Vice President</h3>
-        <p>Supports coordination, execution, and student engagement.</p>
-      </div>
-
-      <div class="team-card">
-        <div class="team-avatar">S</div>
-        <h3>Secretary</h3>
-        <p>Handles communication, scheduling, and activity management.</p>
-      </div>
-
-      <div class="team-card">
-        <div class="team-avatar">T</div>
-        <h3>Technical Lead</h3>
-        <p>Focuses on workshops, innovation ideas, and engineering activities.</p>
+    <div class="team-grid" id="coreBox">
+      <div class="empty-state">
+        <div class="loader"></div>
       </div>
     </div>
   </section>
@@ -182,6 +134,7 @@
       </p>
     </div>
   </section>
+
   <section class="feature-showcase fade-up">
     <div class="feature-modern-card">
       <h3>Technical Workshops</h3>
@@ -244,153 +197,276 @@
   </footer>
 
   <script>
-  // const API_BASE = "http://localhost:3000";
-  const API_BASE = "https://civil-create-club.onrender.com";
+    const API_BASE = "https://civil-create-club.onrender.com";
 
-  function toggleMenu() {
-    document.getElementById("menu").style.right = "0";
-    document.getElementById("overlay").style.display = "block";
-  }
+    function toggleMenu() {
+      document.getElementById("menu").style.right = "0";
+      document.getElementById("overlay").style.display = "block";
+    }
 
-  function closeMenu() {
-    document.getElementById("menu").style.right = "-320px";
-    document.getElementById("overlay").style.display = "none";
-  }
+    function closeMenu() {
+      document.getElementById("menu").style.right = "-320px";
+      document.getElementById("overlay").style.display = "none";
+    }
 
-  const adminUser = localStorage.getItem("adminUsername");
-  const adminToken = localStorage.getItem("adminToken");
+    const adminUser = localStorage.getItem("adminUsername");
+    const adminToken = localStorage.getItem("adminToken");
 
-  const currentUserBox = document.getElementById("currentUserBox");
-  const menuUserArea = document.getElementById("menuUserArea");
-  const authLinks = document.getElementById("authLinks");
+    const currentUserBox = document.getElementById("currentUserBox");
+    const menuUserArea = document.getElementById("menuUserArea");
+    const authLinks = document.getElementById("authLinks");
 
-  if (adminUser && adminToken) {
-    currentUserBox.innerHTML = `<div class="current-user">Admin: ${adminUser}</div>`;
-    menuUserArea.innerHTML = `Logged in as <b>${adminUser}</b>`;
-    authLinks.innerHTML = `
-      <a href="admin.html">Admin Panel</a>
-      <a href="#" onclick="logout()">Logout</a>
-    `;
-  } else {
-    currentUserBox.innerHTML = ``;
-    menuUserArea.innerHTML = `Admin Access Only`;
-    authLinks.innerHTML = `
-      <a href="admin-login.html">Admin Login</a>
-      <a href="admin-request.html">Request Admin Access</a>
-    `;
-  }
+    if (adminUser && adminToken) {
+      currentUserBox.innerHTML = `<div class="current-user">Admin: ${adminUser}</div>`;
+      menuUserArea.innerHTML = `Logged in as <b>${adminUser}</b>`;
+      authLinks.innerHTML = `
+        <a href="admin.html">Admin Panel</a>
+        <a href="#" onclick="logout()">Logout</a>
+      `;
+    } else {
+      currentUserBox.innerHTML = ``;
+      menuUserArea.innerHTML = `Admin Access Only`;
+      authLinks.innerHTML = `
+        <a href="admin-login.html">Admin Login</a>
+        <a href="admin-request.html">Request Admin Access</a>
+      `;
+    }
 
-  function logout() {
-    localStorage.removeItem("adminUsername");
-    localStorage.removeItem("adminToken");
-    window.location = "index.html";
-  }
+    function logout() {
+      localStorage.removeItem("adminUsername");
+      localStorage.removeItem("adminToken");
+      localStorage.removeItem("adminRole");
+      window.location = "index.html";
+    }
 
-  fetch(`${API_BASE}/site-content`)
-    .then(res => {
-      if (!res.ok) throw new Error("Failed");
-      return res.json();
-    })
-    .then(data => {
-      if (data) {
-        document.getElementById("heroTitleText").innerText =
-          data.hero_title || "Welcome to Civil Engineering Club";
-        document.getElementById("heroSubtitleText").innerText =
-          data.hero_subtitle || "A platform for technical growth, collaboration, and departmental excellence.";
-      }
-    })
-    .catch(() => {});
+    fetch(`${API_BASE}/site-content`)
+      .then(res => {
+        if (!res.ok) throw new Error("Failed");
+        return res.json();
+      })
+      .then(data => {
+        if (data) {
+          document.getElementById("heroTitleText").innerText =
+            data.hero_title || "Welcome to Civil Engineering Club";
+          document.getElementById("heroSubtitleText").innerText =
+            data.hero_subtitle || "A platform for technical growth, collaboration, and departmental excellence.";
+        }
+      })
+      .catch(() => {});
 
-  let notices = [];
-  let noticeIndex = 0;
+    let notices = [];
+    let noticeIndex = 0;
 
-  fetch(`${API_BASE}/notices`)
-    .then(res => {
-      if (!res.ok) throw new Error("Failed");
-      return res.json();
-    })
-    .then(data => {
-      notices = data;
-      if (notices.length > 0) {
-        showNotice();
-        setInterval(showNotice, 4500);
-      } else {
+    fetch(`${API_BASE}/notices`)
+      .then(res => {
+        if (!res.ok) throw new Error("Failed");
+        return res.json();
+      })
+      .then(data => {
+        notices = data;
+
+        if (notices.length > 0) {
+          showNotice();
+
+          if (notices.length > 1) {
+            setInterval(showNotice, 4500);
+          }
+        } else {
+          document.getElementById("noticeSlider").innerHTML = `
+            <div class="empty-state">
+              <h3>No notices available</h3>
+              <p>Fresh updates will appear here.</p>
+            </div>
+          `;
+        }
+      })
+      .catch(() => {
         document.getElementById("noticeSlider").innerHTML = `
           <div class="empty-state">
-            <h3>No notices available</h3>
-            <p>Fresh updates will appear here.</p>
+            <h3>Notices unavailable</h3>
+            <p>Please check backend connection.</p>
+          </div>
+        `;
+      });
+
+    function showNotice() {
+      const box = document.getElementById("noticeSlider");
+      const n = notices[noticeIndex];
+
+      if (notices.length === 1) {
+        box.innerHTML = `
+          <div class="notice-inner">
+            <h3>${n.title || "Untitled Notice"}</h3>
+            <p>${n.content || "No content available."}</p>
+            <span class="notice-tag">${n.type || "update"}</span>
+          </div>
+        `;
+        box.style.opacity = "1";
+        return;
+      }
+
+      box.style.opacity = "0.3";
+
+      setTimeout(() => {
+        box.innerHTML = `
+          <div class="notice-inner">
+            <h3>${n.title || "Untitled Notice"}</h3>
+            <p>${n.content || "No content available."}</p>
+            <span class="notice-tag">${n.type || "update"}</span>
+          </div>
+        `;
+        box.style.opacity = "1";
+        noticeIndex = (noticeIndex + 1) % notices.length;
+      }, 250);
+    }
+
+    let galleryItems = [];
+    let galleryIndex = 0;
+
+    fetch(`${API_BASE}/gallery`)
+      .then(res => {
+        if (!res.ok) throw new Error("Failed");
+        return res.json();
+      })
+      .then(data => {
+        galleryItems = data;
+
+        if (galleryItems.length > 0) {
+          showGallery();
+
+          if (galleryItems.length > 1) {
+            setInterval(showGallery, 3500);
+          }
+        } else {
+          document.getElementById("galleryImage").style.display = "none";
+          document.getElementById("galleryTitle").innerText = "No images uploaded yet.";
+        }
+      })
+      .catch(() => {
+        document.getElementById("galleryImage").style.display = "none";
+        document.getElementById("galleryTitle").innerText = "Gallery unavailable.";
+      });
+
+    function showGallery() {
+      const img = document.getElementById("galleryImage");
+      const title = document.getElementById("galleryTitle");
+      const item = galleryItems[galleryIndex];
+
+      if (galleryItems.length === 1) {
+        img.src = `${API_BASE}/uploads/${item.image}`;
+        title.innerText = `${item.title || "Gallery Image"}${item.category ? " • " + item.category : ""}`;
+        img.style.display = "block";
+        img.style.opacity = "1";
+        title.style.opacity = "1";
+        return;
+      }
+
+      img.style.opacity = "0";
+      title.style.opacity = "0";
+
+      setTimeout(() => {
+        img.src = `${API_BASE}/uploads/${item.image}`;
+        title.innerText = `${item.title || "Gallery Image"}${item.category ? " • " + item.category : ""}`;
+        img.style.display = "block";
+        img.style.opacity = "1";
+        title.style.opacity = "1";
+        galleryIndex = (galleryIndex + 1) % galleryItems.length;
+      }, 250);
+    }
+
+    async function loadTeamMembers() {
+      try {
+        const res = await fetch(`${API_BASE}/team`);
+        if (!res.ok) throw new Error("Failed");
+
+        const data = await res.json();
+
+        const facultyBox = document.getElementById("facultyBox");
+        const coreBox = document.getElementById("coreBox");
+
+        facultyBox.innerHTML = "";
+        coreBox.innerHTML = "";
+
+        if (!Array.isArray(data) || data.length === 0) {
+          facultyBox.innerHTML = `
+            <div class="empty-state">
+              <h3>No faculty members added yet.</h3>
+            </div>
+          `;
+          coreBox.innerHTML = `
+            <div class="empty-state">
+              <h3>No core team members added yet.</h3>
+            </div>
+          `;
+          return;
+        }
+
+        const facultyMembers = data.filter(member => member.category === "faculty");
+        const coreMembers = data.filter(member => member.category === "core");
+
+        if (facultyMembers.length === 0) {
+          facultyBox.innerHTML = `
+            <div class="empty-state">
+              <h3>No faculty members added yet.</h3>
+            </div>
+          `;
+        } else {
+          facultyMembers.forEach(member => {
+            const imageHtml = member.image
+              ? `<img src="${API_BASE}/uploads/${member.image}" alt="${member.name}" class="member-photo">`
+              : `<div class="faculty-avatar">${member.name ? member.name.charAt(0).toUpperCase() : "F"}</div>`;
+
+            facultyBox.innerHTML += `
+              <div class="faculty-card">
+                ${imageHtml}
+                <h3>${member.name || "Unnamed"}</h3>
+                <p class="faculty-role">${member.role || ""}</p>
+                <p class="faculty-desc">${member.description || ""}</p>
+              </div>
+            `;
+          });
+        }
+
+        if (coreMembers.length === 0) {
+          coreBox.innerHTML = `
+            <div class="empty-state">
+              <h3>No core team members added yet.</h3>
+            </div>
+          `;
+        } else {
+          coreMembers.forEach(member => {
+            const imageHtml = member.image
+              ? `<img src="${API_BASE}/uploads/${member.image}" alt="${member.name}" class="member-photo">`
+              : `<div class="team-avatar">${member.name ? member.name.charAt(0).toUpperCase() : "C"}</div>`;
+
+            coreBox.innerHTML += `
+              <div class="team-card">
+                ${imageHtml}
+                <h3>${member.name || "Unnamed"}</h3>
+                <p>${member.role || ""}</p>
+                <p>${member.description || ""}</p>
+              </div>
+            `;
+          });
+        }
+      } catch (error) {
+        console.error("Team load error:", error);
+
+        document.getElementById("facultyBox").innerHTML = `
+          <div class="empty-state">
+            <h3>Faculty section unavailable.</h3>
+          </div>
+        `;
+
+        document.getElementById("coreBox").innerHTML = `
+          <div class="empty-state">
+            <h3>Team section unavailable.</h3>
           </div>
         `;
       }
-    })
-    .catch(() => {
-      document.getElementById("noticeSlider").innerHTML = `
-        <div class="empty-state">
-          <h3>Notices unavailable</h3>
-          <p>Please check backend connection.</p>
-        </div>
-      `;
-    });
+    }
 
-  function showNotice() {
-    const box = document.getElementById("noticeSlider");
-    const n = notices[noticeIndex];
-
-    box.style.opacity = "0.3";
-
-    setTimeout(() => {
-      box.innerHTML = `
-        <div class="notice-inner">
-          <h3>${n.title || "Untitled Notice"}</h3>
-          <p>${n.content || "No content available."}</p>
-          <span class="notice-tag">${n.type || "update"}</span>
-        </div>
-      `;
-      box.style.opacity = "1";
-      noticeIndex = (noticeIndex + 1) % notices.length;
-    }, 250);
-  }
-
-  let galleryItems = [];
-  let galleryIndex = 0;
-
-  fetch(`${API_BASE}/gallery`)
-    .then(res => {
-      if (!res.ok) throw new Error("Failed");
-      return res.json();
-    })
-    .then(data => {
-      galleryItems = data;
-      if (galleryItems.length > 0) {
-        showGallery();
-        setInterval(showGallery, 3500);
-      } else {
-        document.getElementById("galleryImage").style.display = "none";
-        document.getElementById("galleryTitle").innerText = "No images uploaded yet.";
-      }
-    })
-    .catch(() => {
-      document.getElementById("galleryImage").style.display = "none";
-      document.getElementById("galleryTitle").innerText = "Gallery unavailable.";
-    });
-
-  function showGallery() {
-    const img = document.getElementById("galleryImage");
-    const title = document.getElementById("galleryTitle");
-    const item = galleryItems[galleryIndex];
-
-    img.style.opacity = "0";
-    title.style.opacity = "0";
-
-    setTimeout(() => {
-      img.src = `${API_BASE}/uploads/${item.image}`;
-      title.innerText = `${item.title || "Gallery Image"}${item.category ? " • " + item.category : ""}`;
-      img.style.display = "block";
-      img.style.opacity = "1";
-      title.style.opacity = "1";
-      galleryIndex = (galleryIndex + 1) % galleryItems.length;
-    }, 250);
-  }
-</script>
+    loadTeamMembers();
+  </script>
 </body>
 </html>

@@ -636,8 +636,40 @@ app.delete("/delete-note/:id", verifyAdmin, requireHead, (req, res) => {
     return res.json({ message: "Note deleted successfully" });
   });
 });
+app.post("/add-member", verifyAdmin, requireHead, upload.single("image"), (req, res) => {
+  const { name, role, category, description } = req.body;
+  const image = req.file ? req.file.filename : "";
+
+  if (!name || !role || !category) {
+    return res.status(400).json({ message: "Name, role and category required" });
+  }
+
+  db.query(
+    "INSERT INTO team_members (name, role, category, description, image) VALUES (?, ?, ?, ?, ?)",
+    [name, role, category, description || "", image],
+    (err) => {
+      if (err) return res.status(500).json({ message: "Server error" });
+      res.json({ message: "Member added successfully" });
+    }
+  );
+});
+app.delete("/delete-member/:id", verifyAdmin, requireHead, (req, res) => {
+  db.query("DELETE FROM team_members WHERE id = ?", [req.params.id], (err, result) => {
+    if (err) return res.status(500).json({ message: "Server error" });
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Member not found" });
+    }
+    res.json({ message: "Member deleted successfully" });
+  });
+});
 
 /* ---------------- START ---------------- */
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+});
+app.get("/team", (req, res) => {
+  db.query("SELECT * FROM team_members ORDER BY id DESC", (err, results) => {
+    if (err) return res.status(500).json({ message: "Server error" });
+    res.json(results);
+  });
 });

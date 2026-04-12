@@ -1504,3 +1504,11 @@ a {
   background: #e2e8f0;
   color: #334155;
 }
+.member-photo {
+  width: 74px;
+  height: 74px;
+  border-radius: 50%;
+  margin: 0 auto 16px;
+  object-fit: cover;
+  box-shadow: 0 10px 22px rgba(29, 78, 216, 0.18);
+}

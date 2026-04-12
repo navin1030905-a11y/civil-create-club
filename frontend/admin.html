@@ -142,6 +142,23 @@
           <div class="empty-request-box">Loading activity logs...</div>
         </div>
       </section>
+      <section class="admin-card" id="teamMemberSection">
+  <h2>Add Team Member</h2>
+  <p class="panel-desc">Head admin can add faculty and core team members.</p>
+
+  <input id="memberName" placeholder="Member Name">
+  <input id="memberRole" placeholder="Member Role">
+
+  <select id="memberCategory">
+    <option value="faculty">Faculty</option>
+    <option value="core">Core Team</option>
+  </select>
+
+  <textarea id="memberDescription" placeholder="Member Description"></textarea>
+  <input type="file" id="memberImage" accept="image/*">
+
+  <button onclick="addMember()">Add Member</button>
+</section>
     </main>
   </div>
 
@@ -706,7 +723,51 @@
       localStorage.removeItem("adminRole");
       window.location.href = "index.html";
     }
+    async function addMember() {
+  const name = document.getElementById("memberName").value.trim();
+  const role = document.getElementById("memberRole").value.trim();
+  const category = document.getElementById("memberCategory").value;
+  const description = document.getElementById("memberDescription").value.trim();
+  const image = document.getElementById("memberImage").files[0];
 
+  if (!name || !role || !category) {
+    alert("Please fill name, role and category");
+    return;
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append("name", name);
+    formData.append("role", role);
+    formData.append("category", category);
+    formData.append("description", description);
+    if (image) {
+      formData.append("image", image);
+    }
+
+    const res = await fetch(`${API_BASE}/add-member`, {
+      method: "POST",
+      headers: {
+        authorization: "Bearer " + token
+      },
+      body: formData
+    });
+
+    const data = await res.json();
+    alert(data.message || "Member added");
+
+    if (res.ok) {
+      document.getElementById("memberName").value = "";
+      document.getElementById("memberRole").value = "";
+      document.getElementById("memberCategory").value = "faculty";
+      document.getElementById("memberDescription").value = "";
+      document.getElementById("memberImage").value = "";
+    }
+  } catch (error) {
+    console.error("Add member error:", error);
+    alert("Server error");
+  }
+}
     applyRoleUI();
     checkAdminAuth();
     loadSiteContent();
