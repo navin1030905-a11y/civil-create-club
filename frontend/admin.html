@@ -814,6 +814,86 @@
         alert("Server error");
       }
     }
+  async function deleteNotice(id) {
+    if (!confirm("Delete this notice?")) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/delete-notice/${id}`, {
+        method: "DELETE",
+        headers: {
+          authorization: "Bearer " + token
+        }
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.message || "Failed to delete notice");
+        return;
+      }
+
+      alert(data.message || "Notice deleted successfully");
+      loadNotices();
+      loadActivityLogs();
+    } catch (error) {
+      console.error("Delete notice error:", error);
+      alert("Server error");
+    }
+  }
+
+  async function deleteGallery(id) {
+    if (!confirm("Delete this gallery item?")) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/delete-gallery/${id}`, {
+        method: "DELETE",
+        headers: {
+          authorization: "Bearer " + token
+        }
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.message || "Failed to delete gallery item");
+        return;
+      }
+
+      alert(data.message || "Gallery item deleted successfully");
+      loadGalleryItems();
+      loadActivityLogs();
+    } catch (error) {
+      console.error("Delete gallery error:", error);
+      alert("Server error");
+    }
+  }
+
+  async function deleteNote(id) {
+    if (!confirm("Delete this note?")) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/delete-note/${id}`, {
+        method: "DELETE",
+        headers: {
+          authorization: "Bearer " + token
+        }
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.message || "Failed to delete note");
+        return;
+      }
+
+      alert(data.message || "Note deleted successfully");
+      loadNotes();
+      loadActivityLogs();
+    } catch (error) {
+      console.error("Delete note error:", error);
+      alert("Server error");
+    }
+  }
 
     function logout() {
       localStorage.removeItem("adminToken");
@@ -821,17 +901,20 @@
       localStorage.removeItem("adminRole");
       window.location.href = "index.html";
     }
-
+  async function initAdminPage() {
     applyRoleUI();
-    checkAdminAuth();
-    loadSiteContent();
-    loadRequests();
-    loadNotices();
-    loadGalleryItems();
-    loadNotes();
-    loadAdminList();
-    loadActivityLogs();
-    loadTeamMembersAdmin();
+    await checkAdminAuth();
+    await loadSiteContent();
+    await loadRequests();
+    await loadNotices();
+    await loadGalleryItems();
+    await loadNotes();
+    await loadAdminList();
+    await loadActivityLogs();
+    await loadTeamMembersAdmin();
+  }
+
+  initAdminPage();
   </script>
 
 </body>
