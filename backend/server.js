@@ -41,12 +41,7 @@ function logActivity(admin, actionType, actionDetails) {
 
   db.query(
     "INSERT INTO activity_logs (admin_username, admin_role, action_type, action_details) VALUES (?, ?, ?, ?)",
-    [
-      admin.username,
-      admin.role || "admin",
-      actionType,
-      actionDetails || ""
-    ],
+    [admin.username, admin.role || "admin", actionType, actionDetails || ""],
     (err) => {
       if (err) {
         console.error("Activity log error:", err);
@@ -63,6 +58,7 @@ const storage = multer.diskStorage({
     cb(null, Date.now() + "-" + safeName);
   }
 });
+
 const upload = multer({ storage });
 
 /* ---------------- AUTH ---------------- */
@@ -84,7 +80,7 @@ function verifyAdmin(req, res, next) {
     const decoded = jwt.verify(token, JWT_SECRET);
     req.admin = decoded;
     next();
-  } catch {
+  } catch (err) {
     return res.status(401).json({ message: "Invalid token" });
   }
 }
@@ -275,19 +271,15 @@ app.post("/approve-admin/:id", verifyAdmin, requireHead, (req, res) => {
 app.post("/reject-admin/:id", verifyAdmin, requireHead, (req, res) => {
   const requestId = req.params.id;
 
-  db.query(
-    "DELETE FROM admin_requests WHERE id = ?",
-    [requestId],
-    (err) => {
-      if (err) {
-        console.error("Reject request error:", err);
-        return res.status(500).json({ message: "Server error" });
-      }
-
-      logActivity(req.admin, "REJECT_ADMIN_REQUEST", `Rejected request id ${requestId}`);
-      return res.json({ message: "Request rejected successfully" });
+  db.query("DELETE FROM admin_requests WHERE id = ?", [requestId], (err) => {
+    if (err) {
+      console.error("Reject request error:", err);
+      return res.status(500).json({ message: "Server error" });
     }
-  );
+
+    logActivity(req.admin, "REJECT_ADMIN_REQUEST", `Rejected request id ${requestId}`);
+    return res.json({ message: "Request rejected successfully" });
+  });
 });
 
 /* ---------------- ADMIN LIST ---------------- */
@@ -590,7 +582,7 @@ app.get("/notes", (req, res) => {
   db.query("SELECT * FROM notes ORDER BY id DESC", (err, results) => {
     if (err) {
       console.error("Notes fetch error:", err);
-      return res.status(500).json({ message: "Server error" });
+      return res.status(500).json({ message: "Server error while fetching notes" });
     }
 
     return res.json(results);
@@ -607,14 +599,17 @@ app.post("/add-note", verifyAdmin, (req, res) => {
   db.query(
     "INSERT INTO notes (title, description, subject, pdf_link) VALUES (?, ?, ?, ?)",
     [title, description, subject, pdf_link || ""],
-    (err) => {
+    (err, result) => {
       if (err) {
         console.error("Add note error:", err);
-        return res.status(500).json({ message: "Server error" });
+        return res.status(500).json({ message: "Server error while adding note" });
       }
 
       logActivity(req.admin, "ADD_NOTE", `Added note: ${title}`);
-      return res.json({ message: "Note added successfully" });
+      return res.json({
+        message: "Note added successfully",
+        noteId: result.insertId
+      });
     }
   );
 });
@@ -622,18 +617,38 @@ app.post("/add-note", verifyAdmin, (req, res) => {
 app.delete("/delete-note/:id", verifyAdmin, requireHead, (req, res) => {
   const id = req.params.id;
 
-  db.query("DELETE FROM notes WHERE id = ?", [id], (err, result) => {
-    if (err) {
-      console.error("Delete note error:", err);
-      return res.status(500).json({ message: "Server error" });
+  if (!id) {
+    return res.status(400).json({ message: "Note id is required" });
+  }
+
+  db.query("SELECT id, title FROM notes WHERE id = ? LIMIT 1", [id], (readErr, rows) => {
+    if (readErr) {
+      console.error("Read note before delete error:", readErr);
+      return res.status(500).json({ message: "Server error while reading note" });
     }
 
-    if (result.affectedRows === 0) {
+    if (rows.length === 0) {
       return res.status(404).json({ message: "Note not found" });
     }
 
-    logActivity(req.admin, "DELETE_NOTE", `Deleted note id ${id}`);
-    return res.json({ message: "Note deleted successfully" });
+    const note = rows[0];
+
+    db.query("DELETE FROM notes WHERE id = ?", [id], (deleteErr, result) => {
+      if (deleteErr) {
+        console.error("Delete note error:", deleteErr);
+        return res.status(500).json({ message: "Server error while deleting note" });
+      }
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ message: "Note not found" });
+      }
+
+      logActivity(req.admin, "DELETE_NOTE", `Deleted note id ${id} (${note.title})`);
+      return res.json({
+        message: "Note deleted successfully",
+        deletedId: Number(id)
+      });
+    });
   });
 });
 
@@ -671,6 +686,7 @@ app.post("/add-member", verifyAdmin, requireHead, upload.single("image"), (req, 
     }
   );
 });
+
 app.put("/update-member/:id", verifyAdmin, requireHead, upload.single("image"), (req, res) => {
   const id = req.params.id;
   const { name, role, category, description } = req.body;
@@ -718,6 +734,7 @@ app.put("/update-member/:id", verifyAdmin, requireHead, upload.single("image"), 
     );
   });
 });
+
 app.delete("/delete-member/:id", verifyAdmin, requireHead, (req, res) => {
   const id = req.params.id;
 
