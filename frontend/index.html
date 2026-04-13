@@ -340,6 +340,7 @@
         } else {
           document.getElementById("galleryImage").style.display = "none";
           document.getElementById("galleryTitle").innerText = "No images uploaded yet.";
+          document.querySelector(".gallery-frame").style.height = "220px";
         }
       })
       .catch(() => {
