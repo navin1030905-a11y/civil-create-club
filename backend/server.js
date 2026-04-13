@@ -4,8 +4,8 @@ const mysql = require("mysql2");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
+const { v2: cloudinary } = require("cloudinary");
+const streamifier = require("streamifier");
 
 const app = express();
 
@@ -13,16 +13,16 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-/* ---------------- UPLOADS ---------------- */
-const uploadsPath = path.join(__dirname, "uploads");
-if (!fs.existsSync(uploadsPath)) {
-  fs.mkdirSync(uploadsPath, { recursive: true });
-}
-app.use("/uploads", express.static(uploadsPath));
-
 /* ---------------- ENV ---------------- */
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || "mysecretkey";
+
+/* ---------------- CLOUDINARY ---------------- */
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
 /* ---------------- DB CONNECTION ---------------- */
 const db = mysql.createConnection(process.env.MYSQL_PUBLIC_URL);
@@ -43,23 +43,54 @@ function logActivity(admin, actionType, actionDetails) {
     "INSERT INTO activity_logs (admin_username, admin_role, action_type, action_details) VALUES (?, ?, ?, ?)",
     [admin.username, admin.role || "admin", actionType, actionDetails || ""],
     (err) => {
-      if (err) {
-        console.error("Activity log error:", err);
-      }
+      if (err) console.error("Activity log error:", err);
     }
   );
 }
 
-/* ---------------- MULTER ---------------- */
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadsPath),
-  filename: (req, file, cb) => {
-    const safeName = file.originalname.replace(/\s+/g, "_");
-    cb(null, Date.now() + "-" + safeName);
-  }
-});
+function uploadBufferToCloudinary(fileBuffer, folder = "civil-create-club") {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder,
+        resource_type: "image"
+      },
+      (error, result) => {
+        if (error) return reject(error);
+        resolve(result);
+      }
+    );
 
-const upload = multer({ storage });
+    streamifier.createReadStream(fileBuffer).pipe(stream);
+  });
+}
+
+function deleteFromCloudinary(imageUrl) {
+  return new Promise((resolve) => {
+    try {
+      if (!imageUrl || !imageUrl.includes("cloudinary.com")) return resolve();
+
+      const parts = imageUrl.split("/");
+      const uploadIndex = parts.findIndex((p) => p === "upload");
+      if (uploadIndex === -1) return resolve();
+
+      const publicPathWithExt = parts.slice(uploadIndex + 2).join("/");
+      const publicId = publicPathWithExt.replace(/\.[^/.]+$/, "");
+
+      cloudinary.uploader.destroy(publicId, { resource_type: "image" }, () => {
+        resolve();
+      });
+    } catch {
+      resolve();
+    }
+  });
+}
+
+/* ---------------- MULTER ---------------- */
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }
+});
 
 /* ---------------- AUTH ---------------- */
 function verifyAdmin(req, res, next) {
@@ -80,7 +111,7 @@ function verifyAdmin(req, res, next) {
     const decoded = jwt.verify(token, JWT_SECRET);
     req.admin = decoded;
     next();
-  } catch (err) {
+  } catch {
     return res.status(401).json({ message: "Invalid token" });
   }
 }
@@ -519,32 +550,39 @@ app.get("/gallery", (req, res) => {
   });
 });
 
-app.post("/add-gallery", verifyAdmin, upload.single("image"), (req, res) => {
-  const { title, category } = req.body;
+app.post("/add-gallery", verifyAdmin, upload.single("image"), async (req, res) => {
+  try {
+    const { title, category } = req.body;
 
-  if (!req.file) {
-    return res.status(400).json({ message: "Image required" });
-  }
-
-  db.query(
-    "INSERT INTO gallery (title, category, image) VALUES (?, ?, ?)",
-    [title || "", category || "", req.file.filename],
-    (err) => {
-      if (err) {
-        console.error("Add gallery error:", err);
-        return res.status(500).json({ message: "Server error" });
-      }
-
-      logActivity(req.admin, "ADD_GALLERY", `Uploaded gallery item: ${req.file.filename}`);
-      return res.json({ message: "Gallery image uploaded successfully" });
+    if (!req.file) {
+      return res.status(400).json({ message: "Image required" });
     }
-  );
+
+    const uploaded = await uploadBufferToCloudinary(req.file.buffer, "civil-create-club/gallery");
+
+    db.query(
+      "INSERT INTO gallery (title, category, image) VALUES (?, ?, ?)",
+      [title || "", category || "", uploaded.secure_url],
+      (err) => {
+        if (err) {
+          console.error("Add gallery error:", err);
+          return res.status(500).json({ message: "Server error" });
+        }
+
+        logActivity(req.admin, "ADD_GALLERY", `Uploaded gallery item`);
+        return res.json({ message: "Gallery image uploaded successfully" });
+      }
+    );
+  } catch (error) {
+    console.error("Cloudinary gallery upload error:", error);
+    return res.status(500).json({ message: "Image upload failed" });
+  }
 });
 
 app.delete("/delete-gallery/:id", verifyAdmin, requireHead, (req, res) => {
   const id = req.params.id;
 
-  db.query("SELECT * FROM gallery WHERE id = ? LIMIT 1", [id], (err, results) => {
+  db.query("SELECT * FROM gallery WHERE id = ? LIMIT 1", [id], async (err, results) => {
     if (err) {
       console.error("Read gallery delete error:", err);
       return res.status(500).json({ message: "Server error" });
@@ -555,21 +593,14 @@ app.delete("/delete-gallery/:id", verifyAdmin, requireHead, (req, res) => {
     }
 
     const item = results[0];
-    const imagePath = path.join(uploadsPath, item.image);
 
-    db.query("DELETE FROM gallery WHERE id = ?", [id], (deleteErr) => {
+    db.query("DELETE FROM gallery WHERE id = ?", [id], async (deleteErr) => {
       if (deleteErr) {
         console.error("Delete gallery DB error:", deleteErr);
         return res.status(500).json({ message: "Server error" });
       }
 
-      if (fs.existsSync(imagePath)) {
-        fs.unlink(imagePath, (fileErr) => {
-          if (fileErr) {
-            console.error("Delete gallery file error:", fileErr);
-          }
-        });
-      }
+      await deleteFromCloudinary(item.image);
 
       logActivity(req.admin, "DELETE_GALLERY", `Deleted gallery item id ${id}`);
       return res.json({ message: "Gallery item deleted successfully" });
@@ -617,10 +648,6 @@ app.post("/add-note", verifyAdmin, (req, res) => {
 app.delete("/delete-note/:id", verifyAdmin, requireHead, (req, res) => {
   const id = req.params.id;
 
-  if (!id) {
-    return res.status(400).json({ message: "Note id is required" });
-  }
-
   db.query("SELECT id, title FROM notes WHERE id = ? LIMIT 1", [id], (readErr, rows) => {
     if (readErr) {
       console.error("Read note before delete error:", readErr);
@@ -664,30 +691,40 @@ app.get("/team", (req, res) => {
   });
 });
 
-app.post("/add-member", verifyAdmin, requireHead, upload.single("image"), (req, res) => {
-  const { name, role, category, description } = req.body;
-  const image = req.file ? req.file.filename : "";
+app.post("/add-member", verifyAdmin, requireHead, upload.single("image"), async (req, res) => {
+  try {
+    const { name, role, category, description } = req.body;
 
-  if (!name || !role || !category) {
-    return res.status(400).json({ message: "Name, role and category required" });
-  }
-
-  db.query(
-    "INSERT INTO team_members (name, role, category, description, image) VALUES (?, ?, ?, ?, ?)",
-    [name, role, category, description || "", image],
-    (err) => {
-      if (err) {
-        console.error("Add member error:", err);
-        return res.status(500).json({ message: "Server error" });
-      }
-
-      logActivity(req.admin, "ADD_TEAM_MEMBER", `Added ${category} member ${name}`);
-      return res.json({ message: "Member added successfully" });
+    if (!name || !role || !category) {
+      return res.status(400).json({ message: "Name, role and category required" });
     }
-  );
+
+    let imageUrl = "";
+    if (req.file) {
+      const uploaded = await uploadBufferToCloudinary(req.file.buffer, "civil-create-club/team");
+      imageUrl = uploaded.secure_url;
+    }
+
+    db.query(
+      "INSERT INTO team_members (name, role, category, description, image) VALUES (?, ?, ?, ?, ?)",
+      [name, role, category, description || "", imageUrl],
+      (err) => {
+        if (err) {
+          console.error("Add member error:", err);
+          return res.status(500).json({ message: "Server error" });
+        }
+
+        logActivity(req.admin, "ADD_TEAM_MEMBER", `Added ${category} member ${name}`);
+        return res.json({ message: "Member added successfully" });
+      }
+    );
+  } catch (error) {
+    console.error("Cloudinary member upload error:", error);
+    return res.status(500).json({ message: "Image upload failed" });
+  }
 });
 
-app.put("/update-member/:id", verifyAdmin, requireHead, upload.single("image"), (req, res) => {
+app.put("/update-member/:id", verifyAdmin, requireHead, upload.single("image"), async (req, res) => {
   const id = req.params.id;
   const { name, role, category, description } = req.body;
 
@@ -695,7 +732,7 @@ app.put("/update-member/:id", verifyAdmin, requireHead, upload.single("image"), 
     return res.status(400).json({ message: "Name, role and category required" });
   }
 
-  db.query("SELECT * FROM team_members WHERE id = ? LIMIT 1", [id], (err, results) => {
+  db.query("SELECT * FROM team_members WHERE id = ? LIMIT 1", [id], async (err, results) => {
     if (err) {
       console.error("Read member update error:", err);
       return res.status(500).json({ message: "Server error" });
@@ -705,40 +742,43 @@ app.put("/update-member/:id", verifyAdmin, requireHead, upload.single("image"), 
       return res.status(404).json({ message: "Member not found" });
     }
 
-    const oldMember = results[0];
-    const newImage = req.file ? req.file.filename : oldMember.image;
+    try {
+      const oldMember = results[0];
+      let newImage = oldMember.image;
 
-    db.query(
-      "UPDATE team_members SET name = ?, role = ?, category = ?, description = ?, image = ? WHERE id = ?",
-      [name, role, category, description || "", newImage, id],
-      (updateErr) => {
-        if (updateErr) {
-          console.error("Update member error:", updateErr);
-          return res.status(500).json({ message: "Server error" });
-        }
-
-        if (req.file && oldMember.image) {
-          const oldImagePath = path.join(uploadsPath, oldMember.image);
-          if (fs.existsSync(oldImagePath)) {
-            fs.unlink(oldImagePath, (fileErr) => {
-              if (fileErr) {
-                console.error("Old image delete error:", fileErr);
-              }
-            });
-          }
-        }
-
-        logActivity(req.admin, "UPDATE_TEAM_MEMBER", `Updated team member id ${id}`);
-        return res.json({ message: "Member updated successfully" });
+      if (req.file) {
+        const uploaded = await uploadBufferToCloudinary(req.file.buffer, "civil-create-club/team");
+        newImage = uploaded.secure_url;
       }
-    );
+
+      db.query(
+        "UPDATE team_members SET name = ?, role = ?, category = ?, description = ?, image = ? WHERE id = ?",
+        [name, role, category, description || "", newImage, id],
+        async (updateErr) => {
+          if (updateErr) {
+            console.error("Update member error:", updateErr);
+            return res.status(500).json({ message: "Server error" });
+          }
+
+          if (req.file && oldMember.image) {
+            await deleteFromCloudinary(oldMember.image);
+          }
+
+          logActivity(req.admin, "UPDATE_TEAM_MEMBER", `Updated team member id ${id}`);
+          return res.json({ message: "Member updated successfully" });
+        }
+      );
+    } catch (error) {
+      console.error("Update member upload error:", error);
+      return res.status(500).json({ message: "Image upload failed" });
+    }
   });
 });
 
 app.delete("/delete-member/:id", verifyAdmin, requireHead, (req, res) => {
   const id = req.params.id;
 
-  db.query("SELECT * FROM team_members WHERE id = ? LIMIT 1", [id], (err, results) => {
+  db.query("SELECT * FROM team_members WHERE id = ? LIMIT 1", [id], async (err, results) => {
     if (err) {
       console.error("Read team member delete error:", err);
       return res.status(500).json({ message: "Server error" });
@@ -749,20 +789,15 @@ app.delete("/delete-member/:id", verifyAdmin, requireHead, (req, res) => {
     }
 
     const member = results[0];
-    const imagePath = member.image ? path.join(uploadsPath, member.image) : null;
 
-    db.query("DELETE FROM team_members WHERE id = ?", [id], (deleteErr) => {
+    db.query("DELETE FROM team_members WHERE id = ?", [id], async (deleteErr) => {
       if (deleteErr) {
         console.error("Delete team member DB error:", deleteErr);
         return res.status(500).json({ message: "Server error" });
       }
 
-      if (imagePath && fs.existsSync(imagePath)) {
-        fs.unlink(imagePath, (fileErr) => {
-          if (fileErr) {
-            console.error("Delete team member file error:", fileErr);
-          }
-        });
+      if (member.image) {
+        await deleteFromCloudinary(member.image);
       }
 
       logActivity(req.admin, "DELETE_TEAM_MEMBER", `Deleted team member id ${id}`);

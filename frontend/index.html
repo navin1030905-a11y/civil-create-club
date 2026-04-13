@@ -209,6 +209,18 @@
       document.getElementById("overlay").style.display = "none";
     }
 
+    function toggleCard(card) {
+      const allCards = document.querySelectorAll(".clickable-card");
+
+      allCards.forEach(item => {
+        if (item !== card) {
+          item.classList.remove("card-expanded");
+        }
+      });
+
+      card.classList.toggle("card-expanded");
+    }
+
     const adminUser = localStorage.getItem("adminUsername");
     const adminToken = localStorage.getItem("adminToken");
 
@@ -293,6 +305,8 @@
       const box = document.getElementById("noticeSlider");
       const n = notices[noticeIndex];
 
+      if (!n) return;
+
       if (notices.length === 1) {
         box.innerHTML = `
           <div class="notice-inner">
@@ -353,8 +367,14 @@
       const title = document.getElementById("galleryTitle");
       const item = galleryItems[galleryIndex];
 
+      if (!item) return;
+
       if (galleryItems.length === 1) {
-        img.src = `${API_BASE}/uploads/${item.image}`;
+        img.src = item.image || "";
+        img.onerror = () => {
+          img.style.display = "none";
+          title.innerText = "Image not available";
+        };
         title.innerText = `${item.title || "Gallery Image"}${item.category ? " • " + item.category : ""}`;
         img.style.display = "block";
         img.style.opacity = "1";
@@ -366,7 +386,11 @@
       title.style.opacity = "0";
 
       setTimeout(() => {
-        img.src = `${API_BASE}/uploads/${item.image}`;
+        img.src = item.image || "";
+        img.onerror = () => {
+          img.style.display = "none";
+          title.innerText = "Image not available";
+        };
         title.innerText = `${item.title || "Gallery Image"}${item.category ? " • " + item.category : ""}`;
         img.style.display = "block";
         img.style.opacity = "1";
@@ -414,11 +438,12 @@
         } else {
           facultyMembers.forEach(member => {
             const imageHtml = member.image
-              ? `<img src="${API_BASE}/uploads/${member.image}" alt="${member.name}" class="member-photo">`
+              ? `<img src="${member.image}" alt="${member.name || "Faculty"}" class="member-photo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                 <div class="faculty-avatar" style="display:none;">${member.name ? member.name.charAt(0).toUpperCase() : "F"}</div>`
               : `<div class="faculty-avatar">${member.name ? member.name.charAt(0).toUpperCase() : "F"}</div>`;
 
             facultyBox.innerHTML += `
-              <div class="faculty-card">
+              <div class="faculty-card clickable-card" onclick="toggleCard(this)">
                 ${imageHtml}
                 <h3>${member.name || "Unnamed"}</h3>
                 <p class="faculty-role">${member.role || ""}</p>
@@ -437,11 +462,12 @@
         } else {
           coreMembers.forEach(member => {
             const imageHtml = member.image
-              ? `<img src="${API_BASE}/uploads/${member.image}" alt="${member.name}" class="member-photo">`
+              ? `<img src="${member.image}" alt="${member.name || "Core Member"}" class="member-photo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                 <div class="team-avatar" style="display:none;">${member.name ? member.name.charAt(0).toUpperCase() : "C"}</div>`
               : `<div class="team-avatar">${member.name ? member.name.charAt(0).toUpperCase() : "C"}</div>`;
 
             coreBox.innerHTML += `
-              <div class="team-card">
+              <div class="team-card clickable-card" onclick="toggleCard(this)">
                 ${imageHtml}
                 <h3>${member.name || "Unnamed"}</h3>
                 <p>${member.role || ""}</p>

@@ -1640,3 +1640,21 @@ a {
     max-height: 260px;
   }
 }
+.clickable-card {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.clickable-card.card-expanded {
+  transform: scale(1.06);
+  z-index: 10;
+  position: relative;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.2);
+  border: 2px solid #3b82f6;
+}
+
+@media (max-width: 768px) {
+  .clickable-card.card-expanded {
+    transform: scale(1.03);
+  }
+}
