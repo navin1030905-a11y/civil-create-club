@@ -1,4 +1,5 @@
 const express = require("express");
+const path = require("path");
 const cors = require("cors");
 const mysql = require("mysql2");
 const bcrypt = require("bcrypt");
@@ -637,11 +638,34 @@ app.post("/add-note", verifyAdmin, upload.single("pdf_file"), async (req, res) =
     let finalPdfLink = pdf_link || "";
 
     if (req.file) {
-      const uploaded = await uploadBufferToCloudinary(
-        req.file.buffer,
-        "civil-create-club/notes",
-        "raw"
-      );
+      const originalExt = path.extname(req.file.originalname || "").toLowerCase();
+
+      if (originalExt !== ".pdf") {
+        return res.status(400).json({ message: "Only PDF file allowed" });
+      }
+
+      const baseName = path.basename(req.file.originalname, originalExt)
+        .replace(/[^a-zA-Z0-9_-]/g, "_");
+
+      const uploaded = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          {
+            folder: "civil-create-club/notes",
+            resource_type: "raw",
+            public_id: `${baseName}_${Date.now()}.pdf`,
+            use_filename: true,
+            unique_filename: false,
+            overwrite: false
+          },
+          (error, result) => {
+            if (error) return reject(error);
+            resolve(result);
+          }
+        );
+
+        streamifier.createReadStream(req.file.buffer).pipe(stream);
+      });
+
       finalPdfLink = uploaded.secure_url;
     }
 
