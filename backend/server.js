@@ -637,21 +637,22 @@ app.post("/add-note", verifyAdmin, upload.single("pdf_file"), async (req, res) =
     let finalPdfLink = pdf_link || "";
 
     if (req.file) {
-      const uploaded = await uploadBufferToCloudinary(
-        req.file.buffer,
-        "civil-create-club/notes",
-        "raw"
-      );
-      const uploaded = await uploadBufferToCloudinary(
-        req.file.buffer,
-        "civil-create-club/notes",
-        "image"
-      );
-      const uploaded = await uploadBufferToCloudinary(
-        req.file.buffer,
-        "civil-create-club/notes",
-        "video"
-      );
+      const uploaded = await new Promise((resolve, reject) => {
+  const stream = cloudinary.uploader.upload_stream(
+    {
+      folder: "civil-create-club/notes",
+      resource_type: "raw",
+      public_id: req.file.originalname.replace(".pdf", "") + "_" + Date.now(),
+      format: "pdf"
+    },
+    (error, result) => {
+      if (error) return reject(error);
+      resolve(result);
+    }
+  );
+
+  streamifier.createReadStream(req.file.buffer).pipe(stream);
+});
       finalPdfLink = uploaded.secure_url;
     }
 
