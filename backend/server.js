@@ -48,12 +48,12 @@ function logActivity(admin, actionType, actionDetails) {
   );
 }
 
-function uploadBufferToCloudinary(fileBuffer, folder = "civil-create-club") {
+function uploadBufferToCloudinary(fileBuffer, folder = "civil-create-club", resourceType = "auto") {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
       {
         folder,
-        resource_type: "image"
+        resource_type: resourceType
       },
       (error, result) => {
         if (error) return reject(error);
@@ -65,19 +65,25 @@ function uploadBufferToCloudinary(fileBuffer, folder = "civil-create-club") {
   });
 }
 
-function deleteFromCloudinary(imageUrl) {
+function deleteFromCloudinary(fileUrl, resourceType = "image") {
   return new Promise((resolve) => {
     try {
-      if (!imageUrl || !imageUrl.includes("cloudinary.com")) return resolve();
+      if (!fileUrl || !fileUrl.includes("cloudinary.com")) return resolve();
 
-      const parts = imageUrl.split("/");
+      const parts = fileUrl.split("/");
       const uploadIndex = parts.findIndex((p) => p === "upload");
       if (uploadIndex === -1) return resolve();
 
-      const publicPathWithExt = parts.slice(uploadIndex + 2).join("/");
+      let pathParts = parts.slice(uploadIndex + 1);
+
+      if (pathParts[0] && pathParts[0].startsWith("v")) {
+        pathParts = pathParts.slice(1);
+      }
+
+      const publicPathWithExt = pathParts.join("/");
       const publicId = publicPathWithExt.replace(/\.[^/.]+$/, "");
 
-      cloudinary.uploader.destroy(publicId, { resource_type: "image" }, () => {
+      cloudinary.uploader.destroy(publicId, { resource_type: resourceType }, () => {
         resolve();
       });
     } catch {
@@ -89,7 +95,7 @@ function deleteFromCloudinary(imageUrl) {
 /* ---------------- MULTER ---------------- */
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 }
+  limits: { fileSize: 10 * 1024 * 1024 }
 });
 
 /* ---------------- AUTH ---------------- */
@@ -558,7 +564,7 @@ app.post("/add-gallery", verifyAdmin, upload.single("image"), async (req, res) =
       return res.status(400).json({ message: "Image required" });
     }
 
-    const uploaded = await uploadBufferToCloudinary(req.file.buffer, "civil-create-club/gallery");
+    const uploaded = await uploadBufferToCloudinary(req.file.buffer, "civil-create-club/gallery", "image");
 
     db.query(
       "INSERT INTO gallery (title, category, image) VALUES (?, ?, ?)",
@@ -569,7 +575,7 @@ app.post("/add-gallery", verifyAdmin, upload.single("image"), async (req, res) =
           return res.status(500).json({ message: "Server error" });
         }
 
-        logActivity(req.admin, "ADD_GALLERY", `Uploaded gallery item`);
+        logActivity(req.admin, "ADD_GALLERY", "Uploaded gallery item");
         return res.json({ message: "Gallery image uploaded successfully" });
       }
     );
@@ -600,7 +606,7 @@ app.delete("/delete-gallery/:id", verifyAdmin, requireHead, (req, res) => {
         return res.status(500).json({ message: "Server error" });
       }
 
-      await deleteFromCloudinary(item.image);
+      await deleteFromCloudinary(item.image, "image");
 
       logActivity(req.admin, "DELETE_GALLERY", `Deleted gallery item id ${id}`);
       return res.json({ message: "Gallery item deleted successfully" });
@@ -620,35 +626,52 @@ app.get("/notes", (req, res) => {
   });
 });
 
-app.post("/add-note", verifyAdmin, (req, res) => {
-  const { title, description, subject, pdf_link } = req.body;
+app.post("/add-note", verifyAdmin, upload.single("pdf_file"), async (req, res) => {
+  try {
+    const { title, description, subject, pdf_link } = req.body;
 
-  if (!title || !description || !subject) {
-    return res.status(400).json({ message: "Title, description and subject are required" });
-  }
-
-  db.query(
-    "INSERT INTO notes (title, description, subject, pdf_link) VALUES (?, ?, ?, ?)",
-    [title, description, subject, pdf_link || ""],
-    (err, result) => {
-      if (err) {
-        console.error("Add note error:", err);
-        return res.status(500).json({ message: "Server error while adding note" });
-      }
-
-      logActivity(req.admin, "ADD_NOTE", `Added note: ${title}`);
-      return res.json({
-        message: "Note added successfully",
-        noteId: result.insertId
-      });
+    if (!title || !description || !subject) {
+      return res.status(400).json({ message: "Title, description and subject are required" });
     }
-  );
+
+    let finalPdfLink = pdf_link || "";
+
+    if (req.file) {
+      const uploaded = await uploadBufferToCloudinary(
+        req.file.buffer,
+        "civil-create-club/notes",
+        "auto"
+      );
+      finalPdfLink = uploaded.secure_url;
+    }
+
+    db.query(
+      "INSERT INTO notes (title, description, subject, pdf_link) VALUES (?, ?, ?, ?)",
+      [title, description, subject, finalPdfLink],
+      (err, result) => {
+        if (err) {
+          console.error("Add note error:", err);
+          return res.status(500).json({ message: "Server error while adding note" });
+        }
+
+        logActivity(req.admin, "ADD_NOTE", `Added note: ${title}`);
+        return res.json({
+          message: "Note added successfully",
+          noteId: result.insertId,
+          pdf_link: finalPdfLink
+        });
+      }
+    );
+  } catch (error) {
+    console.error("PDF upload error:", error);
+    return res.status(500).json({ message: "PDF upload failed" });
+  }
 });
 
 app.delete("/delete-note/:id", verifyAdmin, requireHead, (req, res) => {
   const id = req.params.id;
 
-  db.query("SELECT id, title FROM notes WHERE id = ? LIMIT 1", [id], (readErr, rows) => {
+  db.query("SELECT id, title, pdf_link FROM notes WHERE id = ? LIMIT 1", [id], async (readErr, rows) => {
     if (readErr) {
       console.error("Read note before delete error:", readErr);
       return res.status(500).json({ message: "Server error while reading note" });
@@ -660,7 +683,7 @@ app.delete("/delete-note/:id", verifyAdmin, requireHead, (req, res) => {
 
     const note = rows[0];
 
-    db.query("DELETE FROM notes WHERE id = ?", [id], (deleteErr, result) => {
+    db.query("DELETE FROM notes WHERE id = ?", [id], async (deleteErr, result) => {
       if (deleteErr) {
         console.error("Delete note error:", deleteErr);
         return res.status(500).json({ message: "Server error while deleting note" });
@@ -668,6 +691,12 @@ app.delete("/delete-note/:id", verifyAdmin, requireHead, (req, res) => {
 
       if (result.affectedRows === 0) {
         return res.status(404).json({ message: "Note not found" });
+      }
+
+      if (note.pdf_link && note.pdf_link.includes("cloudinary.com")) {
+        await deleteFromCloudinary(note.pdf_link, "raw");
+        await deleteFromCloudinary(note.pdf_link, "image");
+        await deleteFromCloudinary(note.pdf_link, "video");
       }
 
       logActivity(req.admin, "DELETE_NOTE", `Deleted note id ${id} (${note.title})`);
@@ -701,7 +730,7 @@ app.post("/add-member", verifyAdmin, requireHead, upload.single("image"), async 
 
     let imageUrl = "";
     if (req.file) {
-      const uploaded = await uploadBufferToCloudinary(req.file.buffer, "civil-create-club/team");
+      const uploaded = await uploadBufferToCloudinary(req.file.buffer, "civil-create-club/team", "image");
       imageUrl = uploaded.secure_url;
     }
 
@@ -747,7 +776,7 @@ app.put("/update-member/:id", verifyAdmin, requireHead, upload.single("image"), 
       let newImage = oldMember.image;
 
       if (req.file) {
-        const uploaded = await uploadBufferToCloudinary(req.file.buffer, "civil-create-club/team");
+        const uploaded = await uploadBufferToCloudinary(req.file.buffer, "civil-create-club/team", "image");
         newImage = uploaded.secure_url;
       }
 
@@ -761,7 +790,7 @@ app.put("/update-member/:id", verifyAdmin, requireHead, upload.single("image"), 
           }
 
           if (req.file && oldMember.image) {
-            await deleteFromCloudinary(oldMember.image);
+            await deleteFromCloudinary(oldMember.image, "image");
           }
 
           logActivity(req.admin, "UPDATE_TEAM_MEMBER", `Updated team member id ${id}`);
@@ -797,7 +826,7 @@ app.delete("/delete-member/:id", verifyAdmin, requireHead, (req, res) => {
       }
 
       if (member.image) {
-        await deleteFromCloudinary(member.image);
+        await deleteFromCloudinary(member.image, "image");
       }
 
       logActivity(req.admin, "DELETE_TEAM_MEMBER", `Deleted team member id ${id}`);

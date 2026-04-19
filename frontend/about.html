@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About Club - Civil Create Club</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Cinzel:wght@500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="inner-page">
+
+  <header class="inner-topbar">
+    <div class="inner-brand">
+      <img src="images/logo.png" alt="logo">
+      <div>
+        <h2>Civil Create Club</h2>
+        <p class="inner-college-name">Bhagalpur College of Engineering</p>
+      </div>
+    </div>
+
+    <nav class="inner-page-nav">
+      <a href="index.html">Home</a>
+      <a href="notes.html">Notes</a>
+      <a href="events.html">Events</a>
+      <a href="gallery.html">Achievements</a>
+      <a href="about.html" class="active">About Club</a>
+    </nav>
+  </header>
+
+  <main class="inner-container">
+    <section class="inner-hero-card">
+      <span class="section-tag">About Club</span>
+      <h1 id="aboutPageMainTitle">About Civil Create Club</h1>
+      <p id="aboutPageMainSubtitle">
+        Know more about our vision, mission, activities, and resources.
+      </p>
+    </section>
+
+    <section class="premium-card fade-up">
+      <div class="section-head">
+        <div>
+          <span class="section-tag">Overview</span>
+          <h2>Club Introduction</h2>
+        </div>
+      </div>
+      <p id="aboutPageDescriptionText" class="about-page-description">
+        Civil Create Club supports students through technical activities, notes, presentations, events, practical exposure, and collaborative learning.
+      </p>
+    </section>
+
+    <section class="premium-card fade-up" style="margin-top: 24px;">
+      <div class="section-head">
+        <div>
+          <span class="section-tag">Highlights</span>
+          <h2>About Club Cards</h2>
+        </div>
+      </div>
+
+      <div id="aboutCardsContainer" class="feature-grid">
+        <div class="empty-state">
+          <div class="loader"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="premium-card fade-up" style="margin-top: 24px;">
+      <div class="section-head">
+        <div>
+          <span class="section-tag">Resources</span>
+          <h2>PDF / PPT Files</h2>
+        </div>
+      </div>
+
+      <div id="aboutFilesContainer" class="feature-grid">
+        <div class="empty-state">
+          <div class="loader"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const API_BASE = "https://civil-create-club.onrender.com";
+
+    async function loadAboutPage() {
+      try {
+        const res = await fetch(`${API_BASE}/about-page`);
+        const data = await res.json();
+
+        document.getElementById("aboutPageMainTitle").innerText =
+          data.title || "About Civil Create Club";
+        document.getElementById("aboutPageMainSubtitle").innerText =
+          data.subtitle || "Know more about our vision, mission, activities, and resources.";
+        document.getElementById("aboutPageDescriptionText").innerText =
+          data.description || "Civil Create Club supports students through technical activities, notes, presentations, events, practical exposure, and collaborative learning.";
+      } catch (error) {
+        console.error("About page load error:", error);
+      }
+    }
+
+    async function loadAboutCards() {
+      const box = document.getElementById("aboutCardsContainer");
+
+      try {
+        const res = await fetch(`${API_BASE}/about-cards`);
+        if (!res.ok) throw new Error("Failed");
+
+        const data = await res.json();
+
+        if (!Array.isArray(data) || data.length === 0) {
+          box.innerHTML = `
+            <div class="empty-state">
+              <h3>No about cards available</h3>
+              <p>Admin added cards will appear here.</p>
+            </div>
+          `;
+          return;
+        }
+
+        box.innerHTML = data.map(item => `
+          <div class="feature-card">
+            <h3>${item.title || "Untitled Card"}</h3>
+            <p>${item.description || ""}</p>
+          </div>
+        `).join("");
+      } catch (error) {
+        box.innerHTML = `
+          <div class="empty-state">
+            <h3>About cards unavailable</h3>
+            <p>Please check backend connection.</p>
+          </div>
+        `;
+      }
+    }
+
+    async function loadAboutFiles() {
+      const box = document.getElementById("aboutFilesContainer");
+
+      try {
+        const res = await fetch(`${API_BASE}/about-files`);
+        if (!res.ok) throw new Error("Failed");
+
+        const data = await res.json();
+
+        if (!Array.isArray(data) || data.length === 0) {
+          box.innerHTML = `
+            <div class="empty-state">
+              <h3>No files available</h3>
+              <p>Admin uploaded PDF/PPT files will appear here.</p>
+            </div>
+          `;
+          return;
+        }
+
+        box.innerHTML = data.map(item => `
+          <div class="feature-card note-card">
+            <h3>${item.title || "Untitled File"}</h3>
+            <p>${item.description || "No description added."}</p>
+            <p class="note-subject-text">${item.file_type || "file"}</p>
+            <div class="note-btn-wrap">
+              <a href="${item.file_url}" target="_blank" rel="noopener noreferrer" class="note-open-btn">
+                Open File
+              </a>
+            </div>
+          </div>
+        `).join("");
+      } catch (error) {
+        box.innerHTML = `
+          <div class="empty-state">
+            <h3>Files unavailable</h3>
+            <p>Please check backend connection.</p>
+          </div>
+        `;
+      }
+    }
+
+    loadAboutPage();
+    loadAboutCards();
+    loadAboutFiles();
+  </script>
+
+</body>
+</html>

@@ -100,6 +100,8 @@
         <textarea id="noteDescription" placeholder="Note Description"></textarea>
         <input id="noteSubject" placeholder="Subject Name">
         <input id="notePdfLink" placeholder="PDF Link (optional)">
+        <label class="admin-file-label">Or Upload PDF</label>
+        <input type="file" id="notePdfFile" accept="application/pdf,.pdf">
         <button onclick="addNote()">Add Note</button>
       </section>
 
@@ -324,6 +326,7 @@
       const description = document.getElementById("noteDescription").value.trim();
       const subject = document.getElementById("noteSubject").value.trim();
       const pdf_link = document.getElementById("notePdfLink").value.trim();
+      const pdf_file = document.getElementById("notePdfFile").files[0];
 
       if (!title || !description || !subject) {
         alert("Please fill title, description and subject");
@@ -331,13 +334,22 @@
       }
 
       try {
+        const formData = new FormData();
+        formData.append("title", title);
+        formData.append("description", description);
+        formData.append("subject", subject);
+        formData.append("pdf_link", pdf_link);
+
+        if (pdf_file) {
+          formData.append("pdf_file", pdf_file);
+        }
+
         const res = await fetch(`${API_BASE}/add-note`, {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
             authorization: "Bearer " + token
           },
-          body: JSON.stringify({ title, description, subject, pdf_link })
+          body: formData
         });
 
         const data = await res.json();
@@ -348,6 +360,7 @@
           document.getElementById("noteDescription").value = "";
           document.getElementById("noteSubject").value = "";
           document.getElementById("notePdfLink").value = "";
+          document.getElementById("notePdfFile").value = "";
           loadNotes();
         }
       } catch (error) {
@@ -814,86 +827,87 @@
         alert("Server error");
       }
     }
-  async function deleteNotice(id) {
-    if (!confirm("Delete this notice?")) return;
 
-    try {
-      const res = await fetch(`${API_BASE}/delete-notice/${id}`, {
-        method: "DELETE",
-        headers: {
-          authorization: "Bearer " + token
+    async function deleteNotice(id) {
+      if (!confirm("Delete this notice?")) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/delete-notice/${id}`, {
+          method: "DELETE",
+          headers: {
+            authorization: "Bearer " + token
+          }
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          alert(data.message || "Failed to delete notice");
+          return;
         }
-      });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        alert(data.message || "Failed to delete notice");
-        return;
+        alert(data.message || "Notice deleted successfully");
+        loadNotices();
+        loadActivityLogs();
+      } catch (error) {
+        console.error("Delete notice error:", error);
+        alert("Server error");
       }
-
-      alert(data.message || "Notice deleted successfully");
-      loadNotices();
-      loadActivityLogs();
-    } catch (error) {
-      console.error("Delete notice error:", error);
-      alert("Server error");
     }
-  }
 
-  async function deleteGallery(id) {
-    if (!confirm("Delete this gallery item?")) return;
+    async function deleteGallery(id) {
+      if (!confirm("Delete this gallery item?")) return;
 
-    try {
-      const res = await fetch(`${API_BASE}/delete-gallery/${id}`, {
-        method: "DELETE",
-        headers: {
-          authorization: "Bearer " + token
+      try {
+        const res = await fetch(`${API_BASE}/delete-gallery/${id}`, {
+          method: "DELETE",
+          headers: {
+            authorization: "Bearer " + token
+          }
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          alert(data.message || "Failed to delete gallery item");
+          return;
         }
-      });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        alert(data.message || "Failed to delete gallery item");
-        return;
+        alert(data.message || "Gallery item deleted successfully");
+        loadGalleryItems();
+        loadActivityLogs();
+      } catch (error) {
+        console.error("Delete gallery error:", error);
+        alert("Server error");
       }
-
-      alert(data.message || "Gallery item deleted successfully");
-      loadGalleryItems();
-      loadActivityLogs();
-    } catch (error) {
-      console.error("Delete gallery error:", error);
-      alert("Server error");
     }
-  }
 
-  async function deleteNote(id) {
-    if (!confirm("Delete this note?")) return;
+    async function deleteNote(id) {
+      if (!confirm("Delete this note?")) return;
 
-    try {
-      const res = await fetch(`${API_BASE}/delete-note/${id}`, {
-        method: "DELETE",
-        headers: {
-          authorization: "Bearer " + token
+      try {
+        const res = await fetch(`${API_BASE}/delete-note/${id}`, {
+          method: "DELETE",
+          headers: {
+            authorization: "Bearer " + token
+          }
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          alert(data.message || "Failed to delete note");
+          return;
         }
-      });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        alert(data.message || "Failed to delete note");
-        return;
+        alert(data.message || "Note deleted successfully");
+        loadNotes();
+        loadActivityLogs();
+      } catch (error) {
+        console.error("Delete note error:", error);
+        alert("Server error");
       }
-
-      alert(data.message || "Note deleted successfully");
-      loadNotes();
-      loadActivityLogs();
-    } catch (error) {
-      console.error("Delete note error:", error);
-      alert("Server error");
     }
-  }
 
     function logout() {
       localStorage.removeItem("adminToken");
@@ -901,20 +915,21 @@
       localStorage.removeItem("adminRole");
       window.location.href = "index.html";
     }
-  async function initAdminPage() {
-    applyRoleUI();
-    await checkAdminAuth();
-    await loadSiteContent();
-    await loadRequests();
-    await loadNotices();
-    await loadGalleryItems();
-    await loadNotes();
-    await loadAdminList();
-    await loadActivityLogs();
-    await loadTeamMembersAdmin();
-  }
 
-  initAdminPage();
+    async function initAdminPage() {
+      applyRoleUI();
+      await checkAdminAuth();
+      await loadSiteContent();
+      await loadRequests();
+      await loadNotices();
+      await loadGalleryItems();
+      await loadNotes();
+      await loadAdminList();
+      await loadActivityLogs();
+      await loadTeamMembersAdmin();
+    }
+
+    initAdminPage();
   </script>
 
 </body>
