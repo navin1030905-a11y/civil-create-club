@@ -89,8 +89,9 @@
                 ? `
                   <div style="margin-top:18px;">
                     <a 
-                      href="${item.pdf_link}" 
+                      href="${item.pdf_link.replace('/image/upload/', '/raw/upload/')}" 
                       target="_blank" 
+                      class="note-open-btn"
                       rel="noopener noreferrer"
                       style="
                         display:inline-block;
