@@ -63,6 +63,7 @@
         if (!res.ok) throw new Error("Failed to load notes");
 
         const data = await res.json();
+        console.log("Notes data:", data);
 
         if (!Array.isArray(data) || data.length === 0) {
           box.innerHTML = `
@@ -75,19 +76,42 @@
         }
 
         box.innerHTML = data.map(item => `
-          <div class="feature-card">
+          <div class="feature-card note-card">
             <h3>${item.title || "Untitled Note"}</h3>
             <p>${item.description || "No description available."}</p>
-            <p style="margin-top:12px; font-weight:600; color:#2563eb;">
+
+            <p style="margin-top:12px; font-weight:700; color:#2563eb;">
               ${item.subject || "General"}
             </p>
-            ${item.pdf_link ? `
-              <p style="margin-top:14px;">
-                <a href="${item.pdf_link}" target="_blank" rel="noopener noreferrer" class="inner-back-btn">
-                  Open PDF
-                </a>
-              </p>
-            ` : ""}
+
+            ${
+              item.pdf_link && item.pdf_link.trim() !== ""
+                ? `
+                  <div style="margin-top:18px;">
+                    <a 
+                      href="${item.pdf_link}" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      style="
+                        display:inline-block;
+                        padding:10px 16px;
+                        border-radius:12px;
+                        background:linear-gradient(135deg,#2563eb,#10b981);
+                        color:white;
+                        font-weight:600;
+                        text-decoration:none;
+                      "
+                    >
+                      Open PDF
+                    </a>
+                  </div>
+                `
+                : `
+                  <div style="margin-top:18px; color:#94a3b8; font-weight:600;">
+                    PDF not available
+                  </div>
+                `
+            }
           </div>
         `).join("");
       } catch (error) {
