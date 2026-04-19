@@ -640,7 +640,7 @@ app.post("/add-note", verifyAdmin, upload.single("pdf_file"), async (req, res) =
       const uploaded = await uploadBufferToCloudinary(
         req.file.buffer,
         "civil-create-club/notes",
-        "auto"
+        "raw"
       );
       finalPdfLink = uploaded.secure_url;
     }
@@ -695,8 +695,6 @@ app.delete("/delete-note/:id", verifyAdmin, requireHead, (req, res) => {
 
       if (note.pdf_link && note.pdf_link.includes("cloudinary.com")) {
         await deleteFromCloudinary(note.pdf_link, "raw");
-        await deleteFromCloudinary(note.pdf_link, "image");
-        await deleteFromCloudinary(note.pdf_link, "video");
       }
 
       logActivity(req.admin, "DELETE_NOTE", `Deleted note id ${id} (${note.title})`);
